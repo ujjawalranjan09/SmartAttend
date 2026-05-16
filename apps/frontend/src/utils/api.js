@@ -1,112 +1,18 @@
-// SmartAttend API client — wraps fetch with auth, caching, offline queue
-const BASE = (typeof __API_URL__ !== 'undefined' ? __API_URL__ : '') || 'http://localhost:8000/api/v1';
-
-let _token = null;
-const _cache = new Map();
-const _offlineQueue = [];
-
-export function setToken(t) { _token = t; }
-export function getToken() { return _token; }
-export function clearToken() { _token = null; }
-
-async function request(method, path, body = null, opts = {}) {
-  const url = `${BASE}${path}`;
-  const headers = { 'Content-Type': 'application/json' };
-  if (_token) headers['Authorization'] = `Bearer ${_token}`;
-
-  let res;
-  try {
-    res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: opts.signal,
-    });
-  } catch (err) {
-    // Offline — queue write ops, return cached for reads
-    if (method === 'GET') {
-      const cached = _cache.get(path);
-      if (cached) return { ...cached, _fromCache: true };
-    } else {
-      _offlineQueue.push({ method, path, body, ts: Date.now() });
-    }
-    throw new Error('network_offline');
-  }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw Object.assign(new Error(err.detail || 'request_failed'), { status: res.status, data: err });
-  }
-
-  if (res.status === 204) return null;
-  const data = await res.json();
-
-  // Cache successful GETs
-  if (method === 'GET') {
-    _cache.set(path, data);
-    // Mark stale from SW cache header
-    data._fromCache = res.headers.get('X-From-Cache') === 'true';
-  }
-
-  return data;
-}
-
-export const api = {
-  get:    (path, opts) => request('GET',    path, null, opts),
-  post:   (path, body) => request('POST',   path, body),
-  put:    (path, body) => request('PUT',    path, body),
-  patch:  (path, body) => request('PATCH',  path, body),
-  delete: (path)       => request('DELETE', path),
-
-  // Auth
-  login:  (email, password) => request('POST', '/auth/login', { email, password }),
-  me:     ()                => request('GET',  '/auth/me'),
-  logout: ()                => { clearToken(); },
-
-  // Dashboard
-  dashboardStats:    ()           => request('GET', '/analytics/institution/summary'),
-  weeklyTrend:       (courseId)   => request('GET', `/analytics/courses/${courseId}/trend`),
-  atRisk:            ()           => request('GET', '/analytics/institution/at-risk'),
-
-  // Sessions
-  sessions:          (params = '') => request('GET', `/sessions${params}`),
-  createSession:     (data)        => request('POST', '/sessions', data),
-  startSession:      (id)          => request('POST', `/sessions/${id}/start`),
-  endSession:        (id)          => request('POST', `/sessions/${id}/end`),
-  sessionQR:         (id)          => request('GET',  `/sessions/${id}/qr`),
-
-  // Attendance
-  markAttendance:    (data)        => request('POST', '/attendance/mark', data),
-  sessionAttendance: (sessionId)   => request('GET',  `/attendance/sessions/${sessionId}`),
-  studentAttendance: (studentId)   => request('GET',  `/students/${studentId}/attendance`),
-
-  // Students
-  students:          (params = '') => request('GET', `/students${params}`),
-  student:           (id)          => request('GET', `/students/${id}`),
-  studentAlerts:     (id)          => request('GET', `/students/${id}/alerts`),
-  createStudent:     (data)        => request('POST', '/students', data),
-  updateStudent:     (id, data)    => request('PUT',  `/students/${id}`, data),
-
-  // Faculty
-  faculty:           (params = '') => request('GET', `/faculty${params}`),
-  facultyAnalytics:  (id)          => request('GET', `/faculty/${id}/analytics`),
-
-  // Reports
-  exportCsv:         (params)      => `${BASE}/reports/export/csv?${new URLSearchParams(params)}`,
-  generateReport:    (data)        => request('POST', '/reports/generate', data),
-  attendanceSummary: (params)      => request('GET',  `/reports/summary?${new URLSearchParams(params)}`),
-
-  // Alerts
-  alerts:            ()            => request('GET', '/alerts'),
-
-  getOfflineQueue: () => [..._offlineQueue],
-  flushQueue: async () => {
-    while (_offlineQueue.length > 0) {
-      const item = _offlineQueue[0];
-      try {
-        await request(item.method, item.path, item.body);
-        _offlineQueue.shift();
-      } catch { break; }
-    }
-  },
-};
+// SmartAttend API Client
+const BASE = window.SA_API || (location.hostname==='localhost'?'http://localhost:8000':'');
+let _access=null,_refresh=null;
+export const setTokens=(a,r)=>{_access=a;_refresh=r;};
+export const clearTokens=()=>{_access=null;_refresh=null;};
+export const getToken=()=>_access;
+const offlineQueue=[];
+async function req(method,path,body){const h={'Content-Type':'application/json'};if(_access)h['Authorization']=`Bearer ${_access}`;try{const r=await fetch(BASE+path,{method,headers:h,body:body?JSON.stringify(body):undefined});if(r.status===401&&_refresh){const ok=await tryRefresh();if(ok)return req(method,path,body);}const d=r.headers.get('content-type')?.includes('json')?await r.json():await r.text();if(!r.ok)throw{status:r.status,detail:d?.detail||d};return d;}catch(e){if(!navigator.onLine&&method==='POST'){offlineQueue.push({method,path,body,ts:Date.now()});return{queued:true};}throw e;}}
+async function tryRefresh(){try{const r=await fetch(BASE+'/api/v1/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:_refresh})});if(!r.ok)return false;const d=await r.json();_access=d.access_token;return true;}catch{return false;}}
+export async function flushOfflineQueue(){const items=[...offlineQueue];offlineQueue.length=0;for(const i of items){try{await req(i.method,i.path,i.body);}catch{offlineQueue.push(i);}}}
+export const api={get:(p)=>req('GET',p),post:(p,b)=>req('POST',p,b),put:(p,b)=>req('PUT',p,b),patch:(p,b)=>req('PATCH',p,b),del:(p)=>req('DELETE',p)};
+export const authAPI={login:(e,p)=>api.post('/api/v1/auth/login',{email:e,password:p}),me:()=>api.get('/api/v1/auth/me'),logout:()=>api.post('/api/v1/auth/logout')};
+export const sessionsAPI={list:(p={})=>api.get(`/api/v1/sessions?${new URLSearchParams(p)}`),create:(d)=>api.post('/api/v1/sessions',d),get:(id)=>api.get(`/api/v1/sessions/${id}`),start:(id)=>api.post(`/api/v1/sessions/${id}/start`),end:(id)=>api.post(`/api/v1/sessions/${id}/end`),qr:(id)=>api.get(`/api/v1/sessions/${id}/qr`),attendance:(id)=>api.get(`/api/v1/sessions/${id}/attendance`),override:(sId,stId,status)=>api.post(`/api/v1/sessions/${sId}/override`,{student_id:stId,status})};
+export const attendanceAPI={mark:(d)=>api.post('/api/v1/attendance/mark',d)};
+export const studentsAPI={list:(p={})=>api.get(`/api/v1/students?${new URLSearchParams(p)}`),get:(id)=>api.get(`/api/v1/students/${id}`),alerts:(id)=>api.get(`/api/v1/students/${id}/alerts`),attendance:(id)=>api.get(`/api/v1/students/${id}/attendance`)};
+export const facultyAPI={list:()=>api.get('/api/v1/faculty'),get:(id)=>api.get(`/api/v1/faculty/${id}`),sessions:(id)=>api.get(`/api/v1/faculty/${id}/sessions`),analytics:(id)=>api.get(`/api/v1/faculty/${id}/analytics`)};
+export const analyticsAPI={student:(id)=>api.get(`/api/v1/analytics/student/${id}`),course:(id)=>api.get(`/api/v1/analytics/course/${id}`),institution:()=>api.get('/api/v1/analytics/institution/summary'),atRisk:()=>api.get('/api/v1/analytics/institution/at-risk')};
+export const reportsAPI={summary:(p)=>api.get(`/api/v1/reports/summary?${new URLSearchParams(p||{})}`),generate:(d)=>api.post('/api/v1/reports/generate',d),csvUrl:(p)=>`${BASE}/api/v1/reports/export/csv?${new URLSearchParams(p)}&token=${_access}`};
