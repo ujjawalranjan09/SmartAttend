@@ -10,7 +10,6 @@ from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse, BulkCreateRequest, BulkCreateResponse
 from app.services.user_service import UserService
 from app.services.analytics_service import AnalyticsService
-from app.services.attendance_service import AttendanceService
 
 router = APIRouter()
 
@@ -149,7 +148,7 @@ async def get_student_alerts(
     result = await db.execute(
         select(Alert).where(
             Alert.student_id == student_id,
-            Alert.resolved == False,
+            not Alert.resolved,
         ).order_by(Alert.created_at.desc())
     )
     alerts = result.scalars().all()

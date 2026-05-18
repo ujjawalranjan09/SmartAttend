@@ -4,17 +4,17 @@ from datetime import datetime
 from uuid import UUID
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
-from app.core.deps import require_faculty, require_admin
-from app.models.user import User, UserRole
+from app.core.deps import require_faculty
+from app.models.user import User
 from app.models.attendance import AttendanceRecord, AttendanceStatus
 from app.models.session import ClassSession
-from app.models.course import Course, Enrollment
+from app.models.course import Course
 from app.schemas.report import ReportRequest, ReportJobResponse
 from app.services.analytics_service import AnalyticsService
 

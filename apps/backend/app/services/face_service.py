@@ -4,7 +4,6 @@ from sqlalchemy import select
 import numpy as np
 
 from app.models.face import FaceEmbedding
-from app.core.config import settings
 
 
 class FaceService:
@@ -20,7 +19,7 @@ class FaceService:
         result = await self.db.execute(
             select(FaceEmbedding).where(
                 FaceEmbedding.user_id == student_id,
-                FaceEmbedding.is_active == True,
+                FaceEmbedding.is_active,
             )
         )
         stored = result.scalar_one_or_none()

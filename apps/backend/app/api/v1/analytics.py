@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import date
 
 from app.core.database import get_db
-from app.core.deps import require_faculty, require_student, get_current_user
+from app.core.deps import require_faculty, get_current_user
 from app.models.user import User, UserRole
 from app.schemas.analytics import StudentAnalyticsResponse, CourseAnalyticsResponse
 from app.services.analytics_service import AnalyticsService
@@ -83,7 +83,7 @@ async def institution_summary(
         select(func.count(UserModel.id)).where(
             UserModel.institution_id == institution_id,
             UserModel.role == UserRole.STUDENT,
-            UserModel.is_active == True,
+            UserModel.is_active,
         )
     )).scalar() or 0
 

@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import date, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, case
+from sqlalchemy import select, func
 
 from app.models.attendance import AttendanceRecord, AttendanceStatus
 from app.models.session import ClassSession
@@ -175,7 +175,7 @@ class AnalyticsService:
             .where(
                 User.institution_id == institution_id,
                 User.role == UserRole.STUDENT,
-                User.is_active == True,
+                User.is_active,
             )
         )
         results = await self.db.execute(q)

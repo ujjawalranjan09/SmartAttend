@@ -2,7 +2,6 @@ import csv
 import io
 import json
 from datetime import datetime
-from uuid import UUID
 
 from app.tasks.celery_app import celery_app
 
@@ -26,11 +25,10 @@ def generate_report_task(
     try:
         # Import inside task to avoid circular imports at module load
         from app.core.database import SyncSessionLocal  # synchronous session for Celery
-        from app.models.attendance import AttendanceRecord, AttendanceStatus
+        from app.models.attendance import AttendanceRecord
         from app.models.session import ClassSession
         from app.models.course import Course
         from app.models.user import User
-        from sqlalchemy import select
 
         with SyncSessionLocal() as db:
             q = (

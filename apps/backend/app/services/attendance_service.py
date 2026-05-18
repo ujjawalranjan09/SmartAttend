@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 from app.models.attendance import AttendanceRecord, AttendanceMethod, AttendanceStatus
 from app.models.session import ClassSession
-from app.models.institution import Institution
 
 
 class AttendanceService:

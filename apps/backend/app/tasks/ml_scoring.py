@@ -17,7 +17,6 @@ def score_proxy_risk(self, attendance_record_id: str):
     try:
         from app.core.database import SyncSessionLocal
         from app.models.attendance import AttendanceRecord, AttendanceStatus
-        from sqlalchemy import select
         import uuid
 
         with SyncSessionLocal() as db:
