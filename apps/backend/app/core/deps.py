@@ -42,10 +42,11 @@ def require_roles(*roles: UserRole):
                 detail=f"Access denied. Required roles: {[r.value for r in roles]}",
             )
         return current_user
+
     return _checker
 
 
-require_admin    = require_roles(UserRole.ADMIN)
-require_faculty  = require_roles(UserRole.FACULTY, UserRole.HOD, UserRole.ADMIN)
-require_hod      = require_roles(UserRole.HOD, UserRole.ADMIN)
-require_student  = require_roles(UserRole.STUDENT)
+require_admin = require_roles(UserRole.ADMIN)
+require_faculty = require_roles(UserRole.FACULTY, UserRole.HOD, UserRole.ADMIN)
+require_hod = require_roles(UserRole.HOD, UserRole.ADMIN)
+require_student = require_roles(UserRole.STUDENT)

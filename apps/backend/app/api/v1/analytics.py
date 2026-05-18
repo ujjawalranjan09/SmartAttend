@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import date
 
 from app.core.database import get_db
-from app.core.deps import require_faculty, require_student, get_current_user
+from app.core.deps import require_faculty, get_current_user
 from app.models.user import User, UserRole
 from app.schemas.analytics import StudentAnalyticsResponse, CourseAnalyticsResponse
 from app.services.analytics_service import AnalyticsService
@@ -24,7 +24,10 @@ async def student_analytics(
 ):
     if current_user.role == UserRole.STUDENT and current_user.id != student_id:
         from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Cannot view another student's analytics")
+
+        raise HTTPException(
+            status_code=403, detail="Cannot view another student's analytics"
+        )
     svc = AnalyticsService(db)
     return await svc.get_student_analytics(
         student_id=student_id,
@@ -63,8 +66,12 @@ async def institution_at_risk(
         institution_id=institution_id,
         threshold_pct=threshold_pct,
     )
-    return {"institution_id": str(institution_id), "threshold_pct": threshold_pct,
-            "count": len(at_risk), "students": [s.model_dump() for s in at_risk]}
+    return {
+        "institution_id": str(institution_id),
+        "threshold_pct": threshold_pct,
+        "count": len(at_risk),
+        "students": [s.model_dump() for s in at_risk],
+    }
 
 
 @router.get("/institution/{institution_id}/summary")
@@ -79,31 +86,39 @@ async def institution_summary(
     from app.models.session import ClassSession
     from app.models.attendance import AttendanceRecord, AttendanceStatus
 
-    student_count = (await db.execute(
-        select(func.count(UserModel.id)).where(
-            UserModel.institution_id == institution_id,
-            UserModel.role == UserRole.STUDENT,
-            UserModel.is_active == True,
+    student_count = (
+        await db.execute(
+            select(func.count(UserModel.id)).where(
+                UserModel.institution_id == institution_id,
+                UserModel.role == UserRole.STUDENT,
+                UserModel.is_active,
+            )
         )
-    )).scalar() or 0
+    ).scalar() or 0
 
-    sessions_today = (await db.execute(
-        select(func.count(ClassSession.id)).where(
-            ClassSession.status == "active",
+    sessions_today = (
+        await db.execute(
+            select(func.count(ClassSession.id)).where(
+                ClassSession.status == "active",
+            )
         )
-    )).scalar() or 0
+    ).scalar() or 0
 
-    present_today = (await db.execute(
-        select(func.count(AttendanceRecord.id)).where(
-            AttendanceRecord.status == AttendanceStatus.PRESENT,
+    present_today = (
+        await db.execute(
+            select(func.count(AttendanceRecord.id)).where(
+                AttendanceRecord.status == AttendanceStatus.PRESENT,
+            )
         )
-    )).scalar() or 0
+    ).scalar() or 0
 
-    proxy_alerts = (await db.execute(
-        select(func.count(AttendanceRecord.id)).where(
-            AttendanceRecord.status == AttendanceStatus.PROXY_SUSPECTED,
+    proxy_alerts = (
+        await db.execute(
+            select(func.count(AttendanceRecord.id)).where(
+                AttendanceRecord.status == AttendanceStatus.PROXY_SUSPECTED,
+            )
         )
-    )).scalar() or 0
+    ).scalar() or 0
 
     svc = AnalyticsService(db)
     at_risk = await svc.get_at_risk_students(institution_id)

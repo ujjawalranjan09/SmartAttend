@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 from app.models.attendance import AttendanceRecord, AttendanceMethod, AttendanceStatus
 from app.models.session import ClassSession
-from app.models.institution import Institution
 
 
 class AttendanceService:
@@ -31,9 +30,9 @@ class AttendanceService:
 
         # Get geo-fence config (from timetable slot or institution default)
         slot = session.timetable_slot
-        geo_lat = (slot.geo_lat if slot and slot.geo_lat else None)
-        geo_lon = (slot.geo_lon if slot and slot.geo_lon else None)
-        radius_m = (slot.geo_radius_m if slot and slot.geo_radius_m else 150)
+        geo_lat = slot.geo_lat if slot and slot.geo_lat else None
+        geo_lon = slot.geo_lon if slot and slot.geo_lon else None
+        radius_m = slot.geo_radius_m if slot and slot.geo_radius_m else 150
 
         if geo_lat is None:
             return True  # No fence configured
@@ -41,7 +40,9 @@ class AttendanceService:
         distance = self._haversine_distance(lat, lon, geo_lat, geo_lon)
         return distance <= radius_m
 
-    def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    def _haversine_distance(
+        self, lat1: float, lon1: float, lat2: float, lon2: float
+    ) -> float:
         """Calculate distance in meters between two GPS coordinates."""
         R = 6371000  # Earth radius in meters
         phi1, phi2 = radians(lat1), radians(lat2)
@@ -59,6 +60,7 @@ class AttendanceService:
         # If face embedding provided, do similarity check via ML service
         if face_embedding:
             from app.services.face_service import FaceService
+
             face_svc = FaceService(self.db)
             confidence = await face_svc.verify_embedding(
                 student_id=kwargs["student_id"],

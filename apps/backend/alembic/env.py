@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 # Make sure app is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "apps", "backend"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.core.config import settings
 from app.core.database import Base  # noqa: F401 — triggers model registration

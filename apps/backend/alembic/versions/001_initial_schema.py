@@ -1,9 +1,10 @@
 """Initial schema — all tables
 
 Revision ID: 001
-Revises: 
+Revises:
 Create Date: 2026-05-16
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -32,8 +33,12 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(200), nullable=False),
         sa.Column("code", sa.String(20)),
-        sa.Column("institution_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("institutions.id"), nullable=False),
+        sa.Column(
+            "institution_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("institutions.id"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime, nullable=False),
     )
 
@@ -44,9 +49,21 @@ def upgrade() -> None:
         sa.Column("phone", sa.String(20), unique=True),
         sa.Column("full_name", sa.String(200), nullable=False),
         sa.Column("hashed_password", sa.String(255), nullable=False),
-        sa.Column("role", sa.Enum("student", "faculty", "hod", "admin", "parent", name="userrole"), nullable=False),
-        sa.Column("institution_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("institutions.id")),
-        sa.Column("department_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("departments.id")),
+        sa.Column(
+            "role",
+            sa.Enum("student", "faculty", "hod", "admin", "parent", name="userrole"),
+            nullable=False,
+        ),
+        sa.Column(
+            "institution_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("institutions.id"),
+        ),
+        sa.Column(
+            "department_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("departments.id"),
+        ),
         sa.Column("roll_number", sa.String(50)),
         sa.Column("employee_id", sa.String(50)),
         sa.Column("is_active", sa.Boolean, default=True),
@@ -63,8 +80,16 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(300), nullable=False),
         sa.Column("code", sa.String(30), nullable=False),
-        sa.Column("institution_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("institutions.id")),
-        sa.Column("department_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("departments.id")),
+        sa.Column(
+            "institution_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("institutions.id"),
+        ),
+        sa.Column(
+            "department_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("departments.id"),
+        ),
         sa.Column("credits", sa.Integer, default=3),
         sa.Column("semester", sa.Integer),
         sa.Column("is_active", sa.Boolean, default=True),
@@ -74,8 +99,18 @@ def upgrade() -> None:
     op.create_table(
         "enrollments",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("student_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("course_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("courses.id"), nullable=False),
+        sa.Column(
+            "student_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "course_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("courses.id"),
+            nullable=False,
+        ),
         sa.Column("enrolled_at", sa.DateTime, nullable=False),
         sa.UniqueConstraint("student_id", "course_id", name="uq_enrollment"),
     )
@@ -83,8 +118,12 @@ def upgrade() -> None:
     op.create_table(
         "class_sessions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("course_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("courses.id")),
-        sa.Column("faculty_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id")),
+        sa.Column(
+            "course_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("courses.id")
+        ),
+        sa.Column(
+            "faculty_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id")
+        ),
         sa.Column("timetable_slot_id", postgresql.UUID(as_uuid=True)),
         sa.Column("scheduled_at", sa.DateTime),
         sa.Column("started_at", sa.DateTime),
@@ -98,9 +137,29 @@ def upgrade() -> None:
     op.create_table(
         "attendance_records",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("session_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("class_sessions.id"), nullable=False),
-        sa.Column("student_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("status", sa.Enum("present", "absent", "proxy_suspected", "excused", name="attendancestatus"), nullable=False),
+        sa.Column(
+            "session_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("class_sessions.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "student_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "status",
+            sa.Enum(
+                "present",
+                "absent",
+                "proxy_suspected",
+                "excused",
+                name="attendancestatus",
+            ),
+            nullable=False,
+        ),
         sa.Column("method", sa.String(50)),
         sa.Column("marked_at", sa.DateTime),
         sa.Column("geo_lat", sa.Float),
@@ -122,7 +181,13 @@ def upgrade() -> None:
     op.create_table(
         "face_embeddings",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), unique=True, nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id"),
+            unique=True,
+            nullable=False,
+        ),
         sa.Column("embedding", sa.Text, nullable=False),  # JSON-serialised float list
         sa.Column("model_version", sa.String(50)),
         sa.Column("created_at", sa.DateTime, nullable=False),
@@ -132,8 +197,14 @@ def upgrade() -> None:
     op.create_table(
         "alerts",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("student_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id")),
-        sa.Column("attendance_record_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("attendance_records.id")),
+        sa.Column(
+            "student_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id")
+        ),
+        sa.Column(
+            "attendance_record_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("attendance_records.id"),
+        ),
         sa.Column("alert_type", sa.String(60), nullable=False),
         sa.Column("message", sa.Text, nullable=False),
         sa.Column("resolved", sa.Boolean, default=False),
