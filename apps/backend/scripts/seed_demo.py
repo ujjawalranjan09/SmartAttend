@@ -2,6 +2,7 @@
 Seed script — creates demo institution, faculty, students, course, and sessions.
 Run: python scripts/seed_demo.py
 """
+
 import asyncio
 import uuid
 from datetime import datetime, timedelta

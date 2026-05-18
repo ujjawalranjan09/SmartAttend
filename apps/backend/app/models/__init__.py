@@ -7,11 +7,17 @@ from app.models.face import FaceEmbedding
 from app.models.alert import Alert, AlertType
 
 __all__ = [
-    "User", "UserRole",
-    "Institution", "Department",
-    "Course", "Enrollment",
-    "ClassSession", "TimetableSlot",
-    "AttendanceRecord", "AttendanceMethod",
+    "User",
+    "UserRole",
+    "Institution",
+    "Department",
+    "Course",
+    "Enrollment",
+    "ClassSession",
+    "TimetableSlot",
+    "AttendanceRecord",
+    "AttendanceMethod",
     "FaceEmbedding",
-    "Alert", "AlertType",
+    "Alert",
+    "AlertType",
 ]

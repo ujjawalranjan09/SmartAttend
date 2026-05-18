@@ -65,22 +65,35 @@ async def export_csv(
     def generate():
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "Student Name", "Roll Number", "Email", "Course",
-            "Session Date", "Status", "Method", "Proxy Score", "Notes",
-        ])
+        writer.writerow(
+            [
+                "Student Name",
+                "Roll Number",
+                "Email",
+                "Course",
+                "Session Date",
+                "Status",
+                "Method",
+                "Proxy Score",
+                "Notes",
+            ]
+        )
         for row in rows:
-            writer.writerow([
-                row.full_name,
-                row.roll_number or "",
-                row.email,
-                row.course_name,
-                row.scheduled_at.strftime("%Y-%m-%d %H:%M") if row.scheduled_at else "",
-                row.status,
-                row.method,
-                f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
-                row.verification_notes or "",
-            ])
+            writer.writerow(
+                [
+                    row.full_name,
+                    row.roll_number or "",
+                    row.email,
+                    row.course_name,
+                    row.scheduled_at.strftime("%Y-%m-%d %H:%M")
+                    if row.scheduled_at
+                    else "",
+                    row.status,
+                    row.method,
+                    f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
+                    row.verification_notes or "",
+                ]
+            )
             yield output.getvalue()
             output.seek(0)
             output.truncate(0)
@@ -156,7 +169,6 @@ async def attendance_summary(
         "at_risk_students": len(at_risk),
         "proxy_incidents": proxy_count,
         "top_defaulters": [
-            {"name": s.full_name, "pct": s.attendance_pct}
-            for s in at_risk[:10]
+            {"name": s.full_name, "pct": s.attendance_pct} for s in at_risk[:10]
         ],
     }

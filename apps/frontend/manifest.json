@@ -1,0 +1,22 @@
+{
+  "name": "SmartAttend",
+  "short_name": "SmartAttend",
+  "description": "AI-powered smart attendance system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#171614",
+  "theme_color": "#4f98a3",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mark Attendance", "url": "/#attendance", "description": "Quick attendance check-in" },
+    { "name": "View Schedule", "url": "/#sessions", "description": "Today's class schedule" }
+  ],
+  "categories": ["education", "productivity"]
+}

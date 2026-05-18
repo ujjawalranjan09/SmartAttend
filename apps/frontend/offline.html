@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — SmartAttend</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet" />
+  <style>
+    :root { --color-bg: #171614; --color-text: #cdccca; --color-primary: #4f98a3; --color-surface: #1c1b19; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--color-bg); color: var(--color-text); font-family: 'Satoshi', sans-serif; text-align: center; padding: 2rem; }
+    .container { max-width: 400px; }
+    .icon { width: 64px; height: 64px; margin: 0 auto 1.5rem; color: var(--color-primary); }
+    h1 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    p { color: #797876; margin-bottom: 2rem; }
+    button { background: var(--color-primary); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-family: inherit; }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M1 6s4-2 11-2 11 2 11 2"/>
+      <path d="m1 1 22 22"/>
+      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+      <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+      <line x1="12" x2="12.01" y1="20" y2="20"/>
+    </svg>
+    <h1>You're offline</h1>
+    <p>SmartAttend is unavailable right now. Previously viewed data may still be accessible once you reconnect.</p>
+    <button onclick="window.location.reload()">Try Again</button>
+  </div>
+</body>
+</html>

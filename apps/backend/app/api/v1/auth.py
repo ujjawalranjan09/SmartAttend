@@ -3,10 +3,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import (
-    verify_password, create_access_token, create_refresh_token,
-    decode_token, verify_totp, generate_totp_secret
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    verify_totp,
+    generate_totp_secret,
 )
-from app.schemas.auth import TokenResponse, LoginRequest, RefreshRequest, TOTPSetupResponse
+from app.schemas.auth import (
+    TokenResponse,
+    LoginRequest,
+    RefreshRequest,
+    TOTPSetupResponse,
+)
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -31,7 +40,7 @@ async def login(form: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(
         subject=str(user.id),
-        extra_claims={"role": user.role, "institution_id": str(user.institution_id)}
+        extra_claims={"role": user.role, "institution_id": str(user.institution_id)},
     )
     refresh_token = create_refresh_token(subject=str(user.id))
     return TokenResponse(
@@ -59,7 +68,7 @@ async def refresh_token(body: RefreshRequest, db: AsyncSession = Depends(get_db)
 
     access_token = create_access_token(
         subject=str(user.id),
-        extra_claims={"role": user.role, "institution_id": str(user.institution_id)}
+        extra_claims={"role": user.role, "institution_id": str(user.institution_id)},
     )
     new_refresh = create_refresh_token(subject=str(user.id))
     return TokenResponse(

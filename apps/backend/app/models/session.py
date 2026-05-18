@@ -40,6 +40,7 @@ class TimetableSlot(Base):
 
 class ClassSession(Base):
     """A single occurrence of a class (instantiated from a timetable slot)."""
+
     __tablename__ = "class_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(

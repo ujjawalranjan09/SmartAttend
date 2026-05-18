@@ -12,9 +12,7 @@ class FaceService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def verify_embedding(
-        self, student_id: UUID, embedding: list[float]
-    ) -> float:
+    async def verify_embedding(self, student_id: UUID, embedding: list[float]) -> float:
         """Returns cosine similarity score (0-1) between submitted and stored embedding."""
         result = await self.db.execute(
             select(FaceEmbedding).where(
@@ -28,7 +26,9 @@ class FaceService:
 
         vec_a = np.array(embedding)
         vec_b = np.array(stored.embedding)
-        similarity = float(np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b)))
+        similarity = float(
+            np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
+        )
         return max(0.0, similarity)  # clamp to [0, 1]
 
     async def enroll_face(

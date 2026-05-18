@@ -7,7 +7,14 @@ from datetime import date
 from app.core.database import get_db
 from app.core.deps import require_faculty, require_admin, get_current_user
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse, BulkCreateRequest, BulkCreateResponse
+from app.schemas.user import (
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserListResponse,
+    BulkCreateRequest,
+    BulkCreateResponse,
+)
 from app.services.user_service import UserService
 from app.services.analytics_service import AnalyticsService
 
@@ -36,7 +43,9 @@ async def list_students(
         page_size=page_size,
     )
     return UserListResponse(
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
         items=[UserResponse.model_validate(u) for u in users],
     )
 
@@ -76,7 +85,9 @@ async def get_student(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role == UserRole.STUDENT and current_user.id != student_id:
-        raise HTTPException(status_code=403, detail="Cannot view another student's profile")
+        raise HTTPException(
+            status_code=403, detail="Cannot view another student's profile"
+        )
     svc = UserService(db)
     user = await svc.get_by_id(student_id)
     if not user or user.role != UserRole.STUDENT:
@@ -91,8 +102,10 @@ async def update_student(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in (UserRole.ADMIN, UserRole.HOD, UserRole.FACULTY) \
-            and current_user.id != student_id:
+    if (
+        current_user.role not in (UserRole.ADMIN, UserRole.HOD, UserRole.FACULTY)
+        and current_user.id != student_id
+    ):
         raise HTTPException(status_code=403, detail="Permission denied")
     svc = UserService(db)
     user = await svc.update(student_id, body)
@@ -124,7 +137,9 @@ async def get_student_attendance(
 ):
     """Full attendance history for a student with optional course/date filters."""
     if current_user.role == UserRole.STUDENT and current_user.id != student_id:
-        raise HTTPException(status_code=403, detail="Cannot view another student's attendance")
+        raise HTTPException(
+            status_code=403, detail="Cannot view another student's attendance"
+        )
     svc = AnalyticsService(db)
     return await svc.get_student_analytics(
         student_id=student_id,
@@ -145,12 +160,22 @@ async def get_student_alerts(
         raise HTTPException(status_code=403, detail="Permission denied")
     from app.models.alert import Alert
     from sqlalchemy import select
+
     result = await db.execute(
-        select(Alert).where(
+        select(Alert)
+        .where(
             Alert.student_id == student_id,
             not Alert.resolved,
-        ).order_by(Alert.created_at.desc())
+        )
+        .order_by(Alert.created_at.desc())
     )
     alerts = result.scalars().all()
-    return [{"id": str(a.id), "type": a.alert_type, "message": a.message,
-             "created_at": a.created_at.isoformat()} for a in alerts]
+    return [
+        {
+            "id": str(a.id),
+            "type": a.alert_type,
+            "message": a.message,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in alerts
+    ]

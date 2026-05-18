@@ -35,32 +35,45 @@ class AnalyticsService:
         total_q = (
             select(func.count(ClassSession.id))
             .join(Enrollment, Enrollment.course_id == ClassSession.course_id)
-            .where(Enrollment.student_id == student_id, ClassSession.status == "completed")
+            .where(
+                Enrollment.student_id == student_id, ClassSession.status == "completed"
+            )
         )
         if course_id:
             total_q = total_q.where(ClassSession.course_id == course_id)
         if from_date:
-            total_q = total_q.where(ClassSession.scheduled_at >= datetime.combine(from_date, datetime.min.time()))
+            total_q = total_q.where(
+                ClassSession.scheduled_at
+                >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            total_q = total_q.where(ClassSession.scheduled_at <= datetime.combine(to_date, datetime.max.time()))
+            total_q = total_q.where(
+                ClassSession.scheduled_at
+                <= datetime.combine(to_date, datetime.max.time())
+            )
 
         total_result = await self.db.execute(total_q)
         total_sessions = total_result.scalar() or 0
 
         # Attended
-        attended_q = (
-            select(func.count(AttendanceRecord.id))
-            .where(
-                AttendanceRecord.student_id == student_id,
-                AttendanceRecord.status == AttendanceStatus.PRESENT,
-            )
+        attended_q = select(func.count(AttendanceRecord.id)).where(
+            AttendanceRecord.student_id == student_id,
+            AttendanceRecord.status == AttendanceStatus.PRESENT,
         )
         if course_id:
-            attended_q = attended_q.join(ClassSession).where(ClassSession.course_id == course_id)
+            attended_q = attended_q.join(ClassSession).where(
+                ClassSession.course_id == course_id
+            )
         if from_date:
-            attended_q = attended_q.where(AttendanceRecord.marked_at >= datetime.combine(from_date, datetime.min.time()))
+            attended_q = attended_q.where(
+                AttendanceRecord.marked_at
+                >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            attended_q = attended_q.where(AttendanceRecord.marked_at <= datetime.combine(to_date, datetime.max.time()))
+            attended_q = attended_q.where(
+                AttendanceRecord.marked_at
+                <= datetime.combine(to_date, datetime.max.time())
+            )
 
         attended_result = await self.db.execute(attended_q)
         attended = attended_result.scalar() or 0
@@ -122,12 +135,14 @@ class AnalyticsService:
             total_result = await self.db.execute(total_q)
             total = total_result.scalar() or 1  # avoid div by zero
 
-            trend.append(AttendanceTrend(
-                period=week_start.strftime("%Y-W%V"),
-                attendance_pct=round(attended / total * 100, 2),
-                sessions_held=total,
-                sessions_attended=attended,
-            ))
+            trend.append(
+                AttendanceTrend(
+                    period=week_start.strftime("%Y-W%V"),
+                    attendance_pct=round(attended / total * 100, 2),
+                    sessions_held=total,
+                    sessions_attended=attended,
+                )
+            )
         return trend
 
     def _forecast(self, trend: list[AttendanceTrend]) -> float | None:
@@ -185,23 +200,30 @@ class AnalyticsService:
         for user, attended, total in rows:
             pct = round(attended / total * 100, 2) if total else 0.0
             if pct < threshold_pct:
-                at_risk.append(AtRiskStudent(
-                    student_id=user.id,
-                    full_name=user.full_name,
-                    roll_number=user.roll_number,
-                    attendance_pct=pct,
-                    sessions_missed=total - attended,
-                    risk_level=("critical" if pct < 60 else "moderate"),
-                ))
+                at_risk.append(
+                    AtRiskStudent(
+                        student_id=user.id,
+                        full_name=user.full_name,
+                        roll_number=user.roll_number,
+                        attendance_pct=pct,
+                        sessions_missed=total - attended,
+                        risk_level=("critical" if pct < 60 else "moderate"),
+                    )
+                )
         at_risk.sort(key=lambda x: x.attendance_pct)
         return at_risk
 
     # ── Course analytics ─────────────────────────────────────────────────
 
     async def get_course_analytics(
-        self, course_id: UUID, from_date: date | None = None, to_date: date | None = None
+        self,
+        course_id: UUID,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> CourseAnalyticsResponse:
-        course_result = await self.db.execute(select(Course).where(Course.id == course_id))
+        course_result = await self.db.execute(
+            select(Course).where(Course.id == course_id)
+        )
         course = course_result.scalar_one()
 
         total_sessions_q = select(func.count(ClassSession.id)).where(
@@ -209,13 +231,21 @@ class AnalyticsService:
             ClassSession.status == "completed",
         )
         if from_date:
-            total_sessions_q = total_sessions_q.where(ClassSession.scheduled_at >= datetime.combine(from_date, datetime.min.time()))
+            total_sessions_q = total_sessions_q.where(
+                ClassSession.scheduled_at
+                >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            total_sessions_q = total_sessions_q.where(ClassSession.scheduled_at <= datetime.combine(to_date, datetime.max.time()))
+            total_sessions_q = total_sessions_q.where(
+                ClassSession.scheduled_at
+                <= datetime.combine(to_date, datetime.max.time())
+            )
         total_sessions = (await self.db.execute(total_sessions_q)).scalar() or 0
 
         # Average attendance
-        enrolled_q = select(func.count(Enrollment.id)).where(Enrollment.course_id == course_id)
+        enrolled_q = select(func.count(Enrollment.id)).where(
+            Enrollment.course_id == course_id
+        )
         enrolled = (await self.db.execute(enrolled_q)).scalar() or 1
 
         attended_q = (
@@ -228,7 +258,11 @@ class AnalyticsService:
         )
         attended = (await self.db.execute(attended_q)).scalar() or 0
 
-        avg_pct = round(attended / (total_sessions * enrolled) * 100, 2) if (total_sessions * enrolled) else 0.0
+        avg_pct = (
+            round(attended / (total_sessions * enrolled) * 100, 2)
+            if (total_sessions * enrolled)
+            else 0.0
+        )
 
         proxy_q = (
             select(func.count(AttendanceRecord.id))

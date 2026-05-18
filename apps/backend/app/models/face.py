@@ -11,6 +11,7 @@ from app.core.database import Base
 
 class FaceEmbedding(Base):
     """Stores AES-256 encrypted 512-dim face embedding vectors per student."""
+
     __tablename__ = "face_embeddings"
 
     id: Mapped[uuid.UUID] = mapped_column(

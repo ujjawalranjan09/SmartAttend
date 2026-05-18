@@ -34,7 +34,9 @@ async def list_faculty(
         page_size=page_size,
     )
     return UserListResponse(
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
         items=[UserResponse.model_validate(u) for u in users],
     )
 
@@ -76,8 +78,13 @@ async def update_faculty(
     current_user: User = Depends(get_current_user),
 ):
     # Faculty can update their own profile; admin can update anyone
-    if current_user.role not in (UserRole.ADMIN, UserRole.HOD) and current_user.id != faculty_id:
-        raise HTTPException(status_code=403, detail="Cannot update another faculty's profile")
+    if (
+        current_user.role not in (UserRole.ADMIN, UserRole.HOD)
+        and current_user.id != faculty_id
+    ):
+        raise HTTPException(
+            status_code=403, detail="Cannot update another faculty's profile"
+        )
     svc = UserService(db)
     user = await svc.update(faculty_id, body)
     if not user:

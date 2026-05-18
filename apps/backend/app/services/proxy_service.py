@@ -17,6 +17,7 @@ class ProxyDetectionService:
     async def enqueue_analysis(self, record_id: UUID):
         """Fire-and-forget: send to Celery ML queue."""
         from app.tasks.proxy_analysis import analyze_attendance_record
+
         analyze_attendance_record.apply_async(
             args=[str(record_id)],
             queue="ml",
@@ -58,7 +59,9 @@ class ProxyDetectionService:
         ]
         return np.array(features).reshape(1, -1)
 
-    async def _compute_anomaly_score(self, student_id: UUID, features: np.ndarray) -> float:
+    async def _compute_anomaly_score(
+        self, student_id: UUID, features: np.ndarray
+    ) -> float:
         """
         In production: load per-institution Isolation Forest model from ML service.
         Here: simplified heuristic returning a score between 0 and 1.

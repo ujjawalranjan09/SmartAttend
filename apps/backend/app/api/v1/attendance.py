@@ -4,14 +4,20 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.core.redis import validate_qr_token, rate_limit_check
-from app.schemas.attendance import MarkAttendanceRequest, AttendanceResponse, SessionAttendanceList
+from app.schemas.attendance import (
+    MarkAttendanceRequest,
+    AttendanceResponse,
+    SessionAttendanceList,
+)
 from app.services.attendance_service import AttendanceService
 from app.services.proxy_service import ProxyDetectionService
 
 router = APIRouter()
 
 
-@router.post("/mark", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/mark", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED
+)
 async def mark_attendance(
     body: MarkAttendanceRequest,
     request: Request,
@@ -41,7 +47,9 @@ async def mark_attendance(
         lon=body.geo_lon,
     )
     if not geo_valid:
-        raise HTTPException(status_code=400, detail="Location outside classroom geo-fence")
+        raise HTTPException(
+            status_code=400, detail="Location outside classroom geo-fence"
+        )
 
     # Create attendance record
     record = await svc.create_record(
@@ -72,7 +80,9 @@ async def get_session_attendance(
 ):
     svc = AttendanceService(db)
     records = await svc.get_by_session(session_id)
-    return SessionAttendanceList(session_id=session_id, records=records, total=len(records))
+    return SessionAttendanceList(
+        session_id=session_id, records=records, total=len(records)
+    )
 
 
 @router.patch("/{record_id}/override")
