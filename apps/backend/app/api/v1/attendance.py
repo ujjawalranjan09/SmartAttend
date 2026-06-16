@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
+from typing import Optional
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.core.redis import validate_qr_token, rate_limit_check
+from app.models.attendance import AttendanceRecord
+from app.models.user import User
+from app.models.session import ClassSession
+from app.models.course import Course
 from app.schemas.attendance import MarkAttendanceRequest, AttendanceResponse, SessionAttendanceList
 from app.services.attendance_service import AttendanceService
 from app.services.proxy_service import ProxyDetectionService
@@ -16,13 +23,14 @@ async def mark_attendance(
     body: MarkAttendanceRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Multi-factor attendance marking endpoint.
     Validates: QR token + geo-fence + device fingerprint + (optional) face embedding.
     """
     # Rate limiting: 5 attempts per student per minute
-    rate_key = f"attendance_rate:{body.student_id}"
+    rate_key = f"attendance_rate:{current_user.id}"
     if not await rate_limit_check(rate_key, limit=5, window_seconds=60):
         raise HTTPException(status_code=429, detail="Too many attendance attempts")
 
@@ -46,7 +54,7 @@ async def mark_attendance(
     # Create attendance record
     record = await svc.create_record(
         session_id=body.session_id,
-        student_id=body.student_id,
+        student_id=current_user.id,
         method=body.method,
         geo_lat=body.geo_lat,
         geo_lon=body.geo_lon,
@@ -86,3 +94,64 @@ async def manual_override(
     svc = AttendanceService(db)
     record = await svc.override_status(record_id, status, notes)
     return {"message": "Status updated", "record_id": str(record.id)}
+
+
+@router.get("", response_model=list[dict])
+async def list_attendance_records(
+    limit: int = Query(100, le=500),
+    student_id: Optional[UUID] = Query(None),
+    session_id: Optional[UUID] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List recent attendance records (for faculty dashboard)."""
+    stmt = (
+        select(
+            AttendanceRecord.id,
+            AttendanceRecord.session_id,
+            AttendanceRecord.student_id,
+            AttendanceRecord.status,
+            AttendanceRecord.method,
+            AttendanceRecord.marked_at,
+            AttendanceRecord.face_confidence,
+            User.full_name.label("student_name"),
+            Course.name.label("course_name"),
+        )
+        .join(User, AttendanceRecord.student_id == User.id, isouter=True)
+        .join(ClassSession, AttendanceRecord.session_id == ClassSession.id, isouter=True)
+        .join(Course, ClassSession.course_id == Course.id, isouter=True)
+        .order_by(AttendanceRecord.marked_at.desc())
+        .limit(limit)
+    )
+
+    if student_id:
+        stmt = stmt.where(AttendanceRecord.student_id == student_id)
+    if session_id:
+        stmt = stmt.where(AttendanceRecord.session_id == session_id)
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    records = []
+    for row in rows:
+        (rec_id, sess_id, stud_id, status, method, marked_at, face_conf,
+         student_name, course_name) = row
+
+        records.append({
+            "id": str(rec_id),
+            "session_id": str(sess_id),
+            "student_id": str(stud_id),
+            "student_name": student_name or "Unknown Student",
+            "course_name": course_name or "Unknown Course",
+            "status": status.value if hasattr(status, 'value') else str(status),
+            "method": method.value if hasattr(method, 'value') else str(method),
+            "marked_at": marked_at.isoformat() if marked_at else None,
+            "face_confidence": face_conf,
+            "proxy_risk_score": None,
+        })
+
+    return records
+
+# reload 05/26/2026 04:04:39
+
+# reload 05/26/2026 04:05:15

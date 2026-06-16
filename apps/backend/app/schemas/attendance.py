@@ -6,7 +6,6 @@ from app.models.attendance import AttendanceMethod, AttendanceStatus
 
 class MarkAttendanceRequest(BaseModel):
     session_id: UUID4
-    student_id: UUID4
     qr_token: str
     method: AttendanceMethod = AttendanceMethod.QR_CODE
 
