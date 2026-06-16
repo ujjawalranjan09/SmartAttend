@@ -1,5 +1,6 @@
 import { reportsApi } from '../utils/api.js';
 import { showToast } from '../utils/toast.js';
+import { renderEmpty } from '../utils/ui.js';
 
 export async function renderReports(container, state) {
   container.innerHTML = `

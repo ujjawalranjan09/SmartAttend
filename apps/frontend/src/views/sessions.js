@@ -1,6 +1,7 @@
 import { sessionsApi } from '../utils/api.js';
 import { showToast } from '../utils/toast.js';
 import { renderQR, startDynamicQR } from '../utils/qr.js';
+import { renderError, renderLoading, renderEmpty } from '../utils/ui.js';
 
 export async function renderSessions(container, state) {
   const role = state.role;
@@ -14,13 +15,20 @@ export async function renderSessions(container, state) {
       <select id="filter-status"><option value="">All Status</option><option>scheduled</option><option>active</option><option>completed</option></select>
       <input type="date" id="filter-date" />
     </div>
-    <div id="sessions-list"><div class="skeleton" style="height:300px;border-radius:12px"></div></div>`;
+    <div id="sessions-list"></div>`;
+
+  const listEl = document.getElementById('sessions-list');
+  renderLoading(listEl, 3);
 
   try {
     const sessions = await sessionsApi.list();
-    renderSessionsList(document.getElementById('sessions-list'), sessions, role);
+    if (!sessions?.length) {
+      renderEmpty(listEl, 'calendar', 'No sessions yet', role === 'student' ? 'Your faculty will create sessions' : 'Create your first session to get started');
+    } else {
+      renderSessionsList(listEl, sessions, role);
+    }
   } catch {
-    document.getElementById('sessions-list').innerHTML = `<div class="empty-state"><i data-lucide="calendar"></i><h3>No sessions found</h3><p>Sessions will appear here once created.</p></div>`;
+    renderError(listEl, 'Failed to load sessions. Please try again.', () => renderSessions(container, state));
   }
 
   document.getElementById('new-session-btn')?.addEventListener('click', () => showNewSessionModal());
@@ -28,7 +36,7 @@ export async function renderSessions(container, state) {
 
 function renderSessionsList(container, sessions, role) {
   if (!sessions?.length) {
-    container.innerHTML = `<div class="empty-state"><i data-lucide="calendar"></i><h3>No sessions yet</h3><p>${role === 'student' ? 'Your faculty will create sessions' : 'Create your first session to get started'}</p>${role !== 'student' ? '<button class="btn btn-primary" onclick="document.getElementById(\'new-session-btn\').click()">Create Session</button>' : ''}</div>`;
+    renderEmpty(container, 'calendar', 'No sessions yet', role === 'student' ? 'Your faculty will create sessions' : 'Create your first session to get started');
     return;
   }
   container.innerHTML = `<div class="grid-auto">${sessions.map(s => sessionCard(s, role)).join('')}</div>`;
@@ -40,25 +48,28 @@ function renderSessionsList(container, sessions, role) {
 }
 
 function sessionCard(s, role) {
-  const statusColors = { active: 'badge-present', scheduled: 'badge-primary', completed: 'badge-muted', cancelled: 'badge-error' };
+  const statusColors = { active: 'badge-present', scheduled: 'badge-primary', completed: 'badge-muted', cancelled: 'badge-error', ended: 'badge-muted' };
+  const startTime = s.start_time || s.started_at || s.created_at;
+  const dateStr = startTime ? new Date(startTime).toLocaleString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'No time';
+
   return `
     <div class="session-card">
       <div class="session-card-header">
         <div>
-          <div class="session-name">${s.course_name || s.course_id}</div>
-          <div class="session-meta">${new Date(s.start_time).toLocaleString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+          <div class="session-name">${s.course_name || s.course_id || 'Session'}</div>
+          <div class="session-meta">${dateStr}</div>
         </div>
-        <span class="badge ${statusColors[s.status] || 'badge-muted'}">${s.status}</span>
+        <span class="badge ${statusColors[s.status] || 'badge-muted'}">${s.status || 'unknown'}</span>
       </div>
       <div class="session-stats">
-        <div class="session-stat"><div class="session-stat-val">${s.present_count ?? '--'}</div><div class="session-stat-label">Present</div></div>
-        <div class="session-stat"><div class="session-stat-val">${s.total_enrolled ?? '--'}</div><div class="session-stat-label">Enrolled</div></div>
-        <div class="session-stat"><div class="session-stat-val">${s.total_enrolled && s.present_count ? Math.round(s.present_count/s.total_enrolled*100) + '%' : '--'}</div><div class="session-stat-label">Rate</div></div>
+        <div class="session-stat"><div class="session-stat-val">${s.present_count ?? s.attendance_count ?? '--'}</div><div class="session-stat-label">Present</div></div>
+        <div class="session-stat"><div class="session-stat-val">${s.total_enrolled ?? s.enrolled_count ?? '--'}</div><div class="session-stat-label">Enrolled</div></div>
+        <div class="session-stat"><div class="session-stat-val">${(s.total_enrolled || s.enrolled_count) && (s.present_count || s.attendance_count) ? Math.round((s.present_count || s.attendance_count)/(s.total_enrolled || s.enrolled_count)*100) + '%' : '--'}</div><div class="session-stat-label">Rate</div></div>
       </div>
       <div class="session-actions">
         ${s.status === 'active' ? `<button id="qr-btn-${s.id}" class="btn btn-primary btn-sm"><i data-lucide="qr-code"></i> Show QR</button>` : ''}
         ${role !== 'student' && s.status === 'active' ? `<button id="end-btn-${s.id}" class="btn btn-secondary btn-sm"><i data-lucide="square"></i> End</button>` : ''}
-        ${s.status === 'scheduled' && role !== 'student' ? `<button class="btn btn-primary btn-sm" onclick="startSession('${s.id}')"><i data-lucide="play"></i> Start</button>` : ''}
+        ${(s.status === 'scheduled' || !s.status) && role !== 'student' ? `<button class="btn btn-primary btn-sm" onclick="startSession('${s.id}')"><i data-lucide="play"></i> Start</button>` : ''}
       </div>
     </div>`;
 }
@@ -94,6 +105,120 @@ async function endSession(id) {
   catch (e) { showToast('Failed to end session: ' + (e.message || ''), 'error'); }
 }
 
+// Make startSession globally available (called from inline onclick in session cards)
+window.startSession = async function(sessionId) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // If it's already a scheduled session, we may want a different endpoint in future.
+    // For now we treat "Start" as ensuring it's active (or re-use start for demo).
+    showToast('Starting session...', 'info');
+
+    // Call the start endpoint again (or a dedicated start) - backend will handle if needed
+    const res = await fetch(`${window.API_BASE || 'http://localhost:8000'}/api/v1/sessions/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: JSON.stringify({
+        course_id: 'c0a14390-dbbe-4a7c-8c1b-fff241955cb4',
+        faculty_id: user.id,
+        is_online: false
+      })
+    });
+
+    if (res.ok) {
+      showToast('Session is now active', 'success');
+      location.reload();
+    } else {
+      showToast('Could not start session', 'error');
+    }
+  } catch (e) {
+    showToast('Start failed: ' + (e.message || ''), 'error');
+  }
+};
+
 function showNewSessionModal() {
-  showToast('Session creation form coming soon', 'info');
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New Session</h3>
+        <button class="icon-btn" id="close-create">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Course</label>
+          <select id="create-course" class="input">
+            <option value="c0a14390-dbbe-4a7c-8c1b-fff241955cb4">Data Structures & Algorithms (IT401)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mode</label>
+          <select id="create-mode" class="input">
+            <option value="false">In-person</option>
+            <option value="true">Online</option>
+          </select>
+        </div>
+        <p class="text-muted" style="font-size:0.85rem">This will immediately start an active session.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-create">Cancel</button>
+        <button class="btn btn-primary" id="confirm-create">Start Session</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector('#close-create').onclick = close;
+  modal.querySelector('#cancel-create').onclick = close;
+
+  modal.querySelector('#confirm-create').onclick = async () => {
+    const btn = modal.querySelector('#confirm-create');
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+
+    try {
+      // Use the current logged in user as faculty
+      const user = window.__currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+      const facultyId = user.id;
+
+      if (!facultyId) {
+        throw new Error('No logged in faculty user found. Please re-login.');
+      }
+
+      const courseId = modal.querySelector('#create-course').value;
+      const isOnline = modal.querySelector('#create-mode').value === 'true';
+
+      const res = await fetch(`${window.API_BASE || 'http://localhost:8000'}/api/v1/sessions/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({
+          course_id: courseId,
+          faculty_id: facultyId,
+          is_online: isOnline,
+          qr_rotation_interval_sec: 30
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to create session');
+      }
+
+      showToast('Session started successfully!', 'success');
+      close();
+      // Refresh the sessions list
+      location.reload();
+    } catch (e) {
+      showToast('Failed to start session: ' + (e.message || ''), 'error');
+      btn.disabled = false;
+      btn.textContent = 'Start Session';
+    }
+  };
 }

@@ -1,5 +1,6 @@
 import { studentsApi } from '../utils/api.js';
 import { showToast } from '../utils/toast.js';
+import { renderError, renderLoading, renderEmpty } from '../utils/ui.js';
 
 export async function renderStudents(container, state) {
   container.innerHTML = `
@@ -20,17 +21,25 @@ export async function renderStudents(container, state) {
         <div class="card-title">Student List</div>
         <span class="badge badge-muted" id="student-count">Loading...</span>
       </div>
-      <div id="students-table"><div class="skeleton" style="height:300px"></div></div>
+      <div id="students-table"></div>
     </div>`;
+
+  renderLoading(document.getElementById('students-table'), 5);
 
   let allStudents = [];
   try {
     const data = await studentsApi.list({ limit: 100 });
     allStudents = data?.items || data || [];
-    renderTable(allStudents);
-    document.getElementById('student-count').textContent = `${allStudents.length} students`;
+    if (!allStudents.length) {
+      renderEmpty(document.getElementById('students-table'), 'users', 'No students found', 'Add students to get started');
+      document.getElementById('student-count').textContent = '0 students';
+    } else {
+      renderTable(allStudents);
+      document.getElementById('student-count').textContent = `${allStudents.length} students`;
+    }
   } catch {
-    document.getElementById('students-table').innerHTML = `<div class="empty-state"><i data-lucide="users"></i><h3>No students found</h3><p>Add students to get started</p></div>`;
+    renderError(document.getElementById('students-table'), 'Failed to load students. Please try again.', () => renderStudents(container, state));
+    document.getElementById('student-count').textContent = 'Error';
   }
 
   document.getElementById('search-students')?.addEventListener('input', (e) => {
@@ -55,7 +64,7 @@ export async function renderStudents(container, state) {
 function renderTable(students) {
   const tbody = document.getElementById('students-table');
   if (!students.length) {
-    tbody.innerHTML = `<div class="empty-state"><i data-lucide="search"></i><h3>No students match</h3><p>Try a different filter or search</p></div>`;
+    renderEmpty(tbody, 'search', 'No students match', 'Try a different filter or search');
     return;
   }
   tbody.innerHTML = `

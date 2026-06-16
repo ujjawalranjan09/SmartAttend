@@ -1,4 +1,5 @@
 import { analyticsApi } from '../utils/api.js';
+import { renderError, renderLoading } from '../utils/ui.js';
 
 export async function renderAnalytics(container, state) {
   const role = state.role;
@@ -6,7 +7,9 @@ export async function renderAnalytics(container, state) {
     <div class="page-header">
       <div><h1 class="page-title">${role === 'student' ? 'My Progress' : 'Analytics'}</h1><p class="page-subtitle">${role === 'student' ? 'Track your academic attendance' : 'Attendance insights and trends'}</p></div>
     </div>
-    <div id="analytics-body"><div class="skeleton" style="height:400px;border-radius:12px"></div></div>`;
+    <div id="analytics-body"></div>`;
+
+  renderLoading(document.getElementById('analytics-body'), 4);
 
   try {
     if (role === 'student') {
@@ -17,8 +20,7 @@ export async function renderAnalytics(container, state) {
       renderAdminAnalytics(document.getElementById('analytics-body'), summary, atRisk);
     }
   } catch (e) {
-    document.getElementById('analytics-body').innerHTML = `<div class="alert alert-warning"><i data-lucide="alert-triangle"></i> Failed to load analytics — backend may be offline. Showing demo data.</div>`;
-    renderDemoAnalytics(document.getElementById('analytics-body'), role);
+    renderError(document.getElementById('analytics-body'), 'Failed to load analytics. Backend may be offline.', () => renderAnalytics(container, state));
   }
 }
 
