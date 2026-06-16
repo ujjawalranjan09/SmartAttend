@@ -22,6 +22,21 @@ jobs:
       - name: Format check
         run: ruff format --check apps/backend/
 
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r apps/backend/requirements.txt
+      - name: Run mypy
+        working-directory: apps/backend
+        run: mypy app/ --ignore-missing-imports --no-error-summary || true
+
   test:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest
