@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, ForeignKey, Text
+from sqlalchemy import String, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -15,17 +15,11 @@ class Institution(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
-    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    address: Mapped[str | None] = mapped_column(Text)
+    short_name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     city: Mapped[str | None] = mapped_column(String(100))
     state: Mapped[str | None] = mapped_column(String(100))
-    pincode: Mapped[str | None] = mapped_column(String(10))
-    contact_email: Mapped[str | None] = mapped_column(String(255))
-    contact_phone: Mapped[str | None] = mapped_column(String(20))
-    # Geo-fence config: lat, lon, radius_meters
-    default_geo_lat: Mapped[float | None]
-    default_geo_lon: Mapped[float | None]
-    default_geo_radius_m: Mapped[int | None] = mapped_column(default=150)
+    country: Mapped[str] = mapped_column(String(100), default="India")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     users = relationship("User", back_populates="institution")

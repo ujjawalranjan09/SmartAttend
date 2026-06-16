@@ -31,8 +31,6 @@ async def seed():
             short_name="RTU",
             city="Kota",
             state="Rajasthan",
-            country="India",
-            is_active=True,
             created_at=datetime.utcnow(),
         )
         db.add(inst)
@@ -54,7 +52,7 @@ async def seed():
             id=uuid.uuid4(),
             email="admin@smartattend.in",
             full_name="System Admin",
-            hashed_password=hash_password("Admin@1234"),
+            hashed_password=hash_password("admin123"),
             role=UserRole.ADMIN,
             institution_id=inst.id,
             department_id=dept.id,
@@ -62,14 +60,13 @@ async def seed():
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        db.add(admin)
 
         # Faculty
         faculty = User(
             id=uuid.uuid4(),
             email="faculty@smartattend.in",
             full_name="Prof. Ramesh Sharma",
-            hashed_password=hash_password("Faculty@1234"),
+            hashed_password=hash_password("faculty123"),
             role=UserRole.FACULTY,
             institution_id=inst.id,
             department_id=dept.id,
@@ -78,7 +75,6 @@ async def seed():
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        db.add(faculty)
 
         # Students
         students = []
@@ -87,7 +83,7 @@ async def seed():
                 id=uuid.uuid4(),
                 email=f"student{i}@smartattend.in",
                 full_name=f"Student {i}",
-                hashed_password=hash_password("Student@1234"),
+                hashed_password=hash_password("student123"),
                 role=UserRole.STUDENT,
                 institution_id=inst.id,
                 department_id=dept.id,
