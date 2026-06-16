@@ -66,7 +66,7 @@ jobs:
         run: alembic upgrade head
       - name: Run tests
         working-directory: apps/backend
-        run: pytest tests/ -v --asyncio-mode=auto --tb=short
+        run: pytest tests/ -v --asyncio-mode=auto --tb=short --cov=app --cov-report=term-missing
 
   build:
     name: Docker Build Check
