@@ -651,30 +651,19 @@ a, button, [role="button"] { transition: color var(--transition), background var
    MOBILE RESPONSIVE
    ============================ */
 @media (max-width: 768px) {
-  .app-shell { grid-template-columns: 1fr; }
-  .sidebar {
-    position: fixed; left: -100%; top: 0; height: 100dvh;
-    width: var(--sidebar-width);
-    transition: left 0.25s cubic-bezier(0.16,1,0.3,1);
-    z-index: 200;
-  }
+  .sidebar { position: fixed; left: -260px; z-index: 100; transition: left 0.3s; }
   .sidebar.mobile-open { left: 0; }
-  .mobile-overlay {
-    position: fixed; inset: 0;
-    background: oklch(0 0 0 / 0.5);
-    z-index: 190;
-    display: none;
-  }
+  .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
   .mobile-overlay.visible { display: block; }
-  .mobile-menu-btn { display: inline-flex; }
-  .app-shell.sidebar-collapsed { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .main-content { padding: var(--space-4); }
-  .topbar { padding: 0 var(--space-4); }
-  .notif-panel { width: 100%; border-radius: 0; }
-  .toast-container { bottom: var(--space-4); right: var(--space-4); left: var(--space-4); }
-  .toast { min-width: unset; max-width: 100%; }
+  .main-wrapper { margin-left: 0; }
+  .stat-cards { grid-template-columns: 1fr 1fr; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .table-container { overflow-x: auto; }
+  .auth-card { margin: 1rem; padding: 1.5rem; }
+}
+@media (min-width: 769px) {
+  .mobile-menu-btn { display: none; }
+  .mobile-overlay { display: none !important; }
 }
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr; }
@@ -683,3 +672,9 @@ a, button, [role="button"] { transition: color var(--transition), background var
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ============================
+   FORM VALIDATION
+   ============================ */
+.form-group.has-error input { border-color: #ef4444; }
+.field-error { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
