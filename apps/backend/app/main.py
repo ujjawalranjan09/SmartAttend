@@ -5,8 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.config import settings
+from app.core.errors import AppError, app_error_handler, general_error_handler
+from app.core.logging import RequestIDMiddleware, setup_logging
 from app.api.v1 import auth, attendance, sessions, students, faculty, analytics, reports
 from app.websocket.handlers import router as ws_router
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -27,6 +31,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_exception_handler(AppError, app_error_handler)
+app.add_exception_handler(Exception, general_error_handler)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request ID tracking
+app.add_middleware(RequestIDMiddleware)
 
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
