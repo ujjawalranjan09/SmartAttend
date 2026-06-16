@@ -1,5 +1,8 @@
+import uuid
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -49,3 +52,20 @@ require_admin    = require_roles(UserRole.ADMIN)
 require_faculty  = require_roles(UserRole.FACULTY, UserRole.HOD, UserRole.ADMIN)
 require_hod      = require_roles(UserRole.HOD, UserRole.ADMIN)
 require_student  = require_roles(UserRole.STUDENT)
+
+
+async def get_user_institution_id(
+    current_user: User = Depends(get_current_user),
+) -> uuid.UUID | None:
+    if current_user.role == UserRole.ADMIN and current_user.institution_id is None:
+        return None
+    return current_user.institution_id
+
+
+def filter_by_institution(query: Select, institution_id: uuid.UUID | None) -> Select:
+    if institution_id is None:
+        return query
+    model = query.column_descriptions[0]["entity"]
+    if model is None:
+        return query
+    return query.where(model.institution_id == institution_id)

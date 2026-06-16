@@ -3,10 +3,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.core.security import (
     verify_password, create_access_token, create_refresh_token,
     decode_token, verify_totp, generate_totp_secret
 )
+from app.models.user import User
 from app.schemas.auth import TokenResponse, LoginRequest, RefreshRequest, TOTPSetupResponse
 from app.services.user_service import UserService
 
@@ -73,8 +75,27 @@ async def refresh_token(body: RefreshRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/totp/setup", response_model=TOTPSetupResponse)
-async def setup_totp(db: AsyncSession = Depends(get_db)):
-    # In real implementation, get current_user from JWT dependency
+async def setup_totp(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     secret = generate_totp_secret()
-    # Store secret on user record (pending confirmation)
+    current_user.totp_secret = secret
+    await db.commit()
     return TOTPSetupResponse(secret=secret)
+
+
+@router.get("/me")
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Return current logged-in user (used by frontend after login)."""
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "role": current_user.role,           # string (e.g. "faculty")
+        "institution_id": str(current_user.institution_id) if current_user.institution_id else None,
+        "department_id": str(current_user.department_id) if current_user.department_id else None,
+        "is_active": current_user.is_active,
+    }
+
+# reload trigger 05/26/2026 03:48:23
