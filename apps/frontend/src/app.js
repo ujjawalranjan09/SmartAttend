@@ -9,6 +9,7 @@ import { renderStudents } from './views/students.js';
 import { renderAnalytics } from './views/analytics.js';
 import { renderReports } from './views/reports.js';
 import { renderSettings } from './views/settings.js';
+import { renderQrScanner } from './views/qr-scanner.js';
 
 // ---- Role-based nav config ----
 const NAV = {
@@ -40,6 +41,7 @@ const NAV = {
   student: [
     { section: 'My Space' },
     { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+    { id: 'qr-scanner', label: 'Scan QR', icon: 'scan' },
     { id: 'attendance', label: 'My Attendance', icon: 'check-square' },
     { id: 'sessions', label: 'Schedule', icon: 'calendar' },
     { id: 'analytics', label: 'My Progress', icon: 'trending-up' },
@@ -47,7 +49,7 @@ const NAV = {
   ],
 };
 
-const VIEWS = { dashboard: renderDashboard, sessions: renderSessions, attendance: renderAttendance, students: renderStudents, analytics: renderAnalytics, reports: renderReports, settings: renderSettings };
+const VIEWS = { dashboard: renderDashboard, sessions: renderSessions, attendance: renderAttendance, students: renderStudents, analytics: renderAnalytics, reports: renderReports, settings: renderSettings, 'qr-scanner': renderQrScanner };
 
 // ---- Boot ----
 document.addEventListener('DOMContentLoaded', () => {
@@ -117,8 +119,8 @@ function setupAuthScreen() {
     try {
       const res = await fetch(`${window.API_BASE || 'http://localhost:8000'}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username: email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || 'Login failed');
       const data = await res.json();

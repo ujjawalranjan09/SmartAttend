@@ -689,3 +689,20 @@ a, button, [role="button"] { transition: color var(--transition), background var
    ============================ */
 .form-group.has-error input { border-color: #ef4444; }
 .field-error { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
+
+/* ============================
+   QR SCANNER
+   ============================ */
+.qr-scanner-wrapper { max-width: 500px; margin: 0 auto; padding: 1rem; }
+.qr-scanner-card { padding: 1.5rem; text-align: center; }
+.qr-status { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem 0; color: var(--color-text-muted); font-size: 0.875rem; }
+.qr-result { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: var(--radius); margin-top: 0.75rem; font-size: 0.875rem; }
+.qr-success { background: var(--color-success-highlight); color: var(--color-success); }
+.qr-error { background: var(--color-error-highlight); color: var(--color-error); }
+.qr-divider { display: flex; align-items: center; margin: 1.25rem 0; gap: 0.75rem; color: var(--color-text-muted); font-size: 0.8rem; }
+.qr-divider::before, .qr-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-divider); }
+.qr-manual-form { display: flex; gap: 0.5rem; }
+.qr-manual-form .input { flex: 1; }
+#qr-reader img { display: none; }
+#qr-reader video { border-radius: var(--radius); max-width: 100%; }
+#qr-reader__scan_region { min-height: 200px; }
