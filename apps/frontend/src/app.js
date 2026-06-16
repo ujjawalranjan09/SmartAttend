@@ -1,5 +1,5 @@
 // SmartAttend — Main app entry point & router
-import { setToken, getToken, authApi } from './utils/api.js';
+import { setToken, getToken, authApi, notificationsApi } from './utils/api.js';
 import { store } from './utils/store.js';
 import { showToast } from './utils/toast.js';
 import { renderDashboard } from './views/dashboard.js';
@@ -243,28 +243,49 @@ function setupNotifications() {
   const btn = document.getElementById('notif-btn');
   const panel = document.getElementById('notif-panel');
   const list = document.getElementById('notif-list');
+  const dot = document.getElementById('notif-dot');
 
-  const mockNotifs = [
-    { id: 1, text: 'Ramesh Kumar has attendance below 75%', time: '2 min ago', unread: true },
-    { id: 2, text: 'Session CS301 marked complete', time: '1 hr ago', unread: true },
-    { id: 3, text: 'Weekly attendance report is ready', time: 'Yesterday', unread: false },
-  ];
+  function updateBadge(count) {
+    if (count > 0) dot?.classList.remove('hidden');
+    else dot?.classList.add('hidden');
+  }
 
-  const unreadCount = mockNotifs.filter(n => n.unread).length;
-  if (unreadCount > 0) document.getElementById('notif-dot')?.classList.remove('hidden');
-
-  list.innerHTML = mockNotifs.map(n => `
-    <div class="notif-item ${n.unread ? 'unread' : ''}">
-      <div class="notif-dot-icon"></div>
-      <div class="notif-body">
-        <p>${n.text}</p>
-        <span class="notif-time">${n.time}</span>
-      </div>
-    </div>`).join('');
+  async function loadNotifications() {
+    try {
+      const data = await notificationsApi.list();
+      const notifs = data.items || data;
+      updateBadge(notifs.filter(n => !n.is_read).length);
+      if (!notifs.length) {
+        list.innerHTML = '<div class="notif-empty">No notifications</div>';
+        return;
+      }
+      list.innerHTML = notifs.map(n => `
+        <div class="notif-item ${!n.is_read ? 'unread' : ''}" data-id="${n.id}">
+          <div class="notif-dot-icon"></div>
+          <div class="notif-body">
+            <p>${n.message || n.text || ''}</p>
+            <span class="notif-time">${n.created_at || ''}</span>
+          </div>
+        </div>`).join('');
+      list.querySelectorAll('.notif-item.unread').forEach(el => {
+        el.addEventListener('click', async () => {
+          try {
+            await notificationsApi.markRead(el.dataset.id);
+            el.classList.remove('unread');
+            const remaining = list.querySelectorAll('.notif-item.unread').length;
+            updateBadge(remaining);
+          } catch { /* ignore */ }
+        });
+      });
+    } catch {
+      list.innerHTML = '<div class="notif-empty">Failed to load notifications</div>';
+    }
+  }
 
   btn?.addEventListener('click', (e) => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) loadNotifications();
   });
   document.getElementById('close-notif')?.addEventListener('click', () => panel.classList.add('hidden'));
   document.addEventListener('click', (e) => {

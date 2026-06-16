@@ -31,13 +31,11 @@ export const api = {
 
 // ---- Auth endpoints ----
 export const authApi = {
-  login: (email, password) => request('POST', '/auth/login', null, {}).then(() =>
-    fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username: email, password }),
-    }).then(r => r.json())
-  ),
+  login: (email, password) => fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  }).then(r => r.json()),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout', {}),
 };
@@ -93,4 +91,10 @@ export const analyticsApi = {
 export const reportsApi = {
   generate: (data) => api.post('/reports/generate', data),
   exportCsv: (params = {}) => `${BASE}/reports/export/csv?` + new URLSearchParams({ ...params, token: _token }),
+};
+
+// ---- Notifications endpoints ----
+export const notificationsApi = {
+  list: (params = {}) => api.get('/notifications?' + new URLSearchParams(params)),
+  markRead: (id) => api.patch(`/notifications/${id}/read`, {}),
 };
