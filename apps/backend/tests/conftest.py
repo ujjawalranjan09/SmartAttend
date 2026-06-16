@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 from datetime import datetime, timezone
 
@@ -6,7 +5,6 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -21,30 +19,23 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 TABLES_TO_SKIP = {"face_embeddings"}
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+def get_tables():
+    return [t for t in Base.metadata.sorted_tables if t.name not in TABLES_TO_SKIP]
 
 
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     engine = create_async_engine(TEST_DB_URL, echo=False)
+    tables = get_tables()
     async with engine.begin() as conn:
-        tables = [
-            t for t in Base.metadata.sorted_tables if t.name not in TABLES_TO_SKIP
-        ]
         await conn.run_sync(
             lambda sync_conn: Base.metadata.create_all(
                 sync_conn, tables=tables
             )
         )
     yield engine
+    tables = get_tables()
     async with engine.begin() as conn:
-        tables = [
-            t for t in Base.metadata.sorted_tables if t.name not in TABLES_TO_SKIP
-        ]
         await conn.run_sync(
             lambda sync_conn: Base.metadata.drop_all(
                 sync_conn, tables=tables
