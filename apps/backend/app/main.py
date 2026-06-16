@@ -54,4 +54,27 @@ app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    return {"status": "ok", "service": settings.app_name, "env": settings.app_env}
+    checks = {"status": "ok", "service": settings.app_name, "env": settings.app_env}
+    # DB check
+    try:
+        import sqlalchemy as sa
+        from app.core.database import async_engine
+        async with async_engine.connect() as conn:
+            await conn.execute(sa.text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "error"
+        checks["status"] = "degraded"
+    # Redis check
+    try:
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(settings.redis_url)
+        await r.ping()
+        await r.aclose()
+        checks["redis"] = "ok"
+    except Exception:
+        checks["redis"] = "error"
+        checks["status"] = "degraded"
+    status_code = 200 if checks["status"] == "ok" else 503
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content=checks, status_code=status_code)
