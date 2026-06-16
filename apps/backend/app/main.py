@@ -7,7 +7,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.core.config import settings
 from app.core.errors import AppError, app_error_handler, general_error_handler
 from app.core.logging import RequestIDMiddleware, setup_logging
-from app.api.v1 import auth, attendance, sessions, students, faculty, analytics, reports
+from app.core.audit import setup_audit_listeners
+from app.api.v1 import auth, attendance, sessions, students, faculty, analytics, reports, notifications
 from app.websocket.handlers import router as ws_router
 
 setup_logging()
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
     # Startup
     if settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
+    setup_audit_listeners()
     yield
     # Shutdown — clean up connections if needed
 
@@ -57,6 +59,7 @@ app.include_router(students.router, prefix="/api/v1/students", tags=["Students"]
 app.include_router(faculty.router, prefix="/api/v1/faculty", tags=["Faculty"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
 
 # WebSocket
 app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
