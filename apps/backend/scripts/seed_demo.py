@@ -2,11 +2,12 @@
 Seed script — creates demo institution, faculty, students, course, and sessions.
 Run: python scripts/seed_demo.py
 """
+
 import asyncio
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.core.config import settings
 from app.core.database import Base
@@ -141,9 +142,9 @@ async def seed():
         await db.commit()
         print("\n✅ Demo data seeded successfully!")
         print(f"   Institution : {inst.name}")
-        print(f"   Admin       : admin@smartattend.in  /  Admin@1234")
-        print(f"   Faculty     : faculty@smartattend.in  /  Faculty@1234")
-        print(f"   Students    : student1..5@smartattend.in  /  Student@1234")
+        print("   Admin       : admin@smartattend.in  /  Admin@1234")
+        print("   Faculty     : faculty@smartattend.in  /  Faculty@1234")
+        print("   Students    : student1..5@smartattend.in  /  Student@1234")
         print(f"   Course      : {course.name} ({course.code})")
 
     await engine.dispose()

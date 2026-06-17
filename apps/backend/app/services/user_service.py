@@ -20,12 +20,12 @@ class UserService:
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: str | UUID) -> Optional[User]:
-        result = await self.db.execute(
-            select(User).where(User.id == str(user_id))
-        )
+        result = await self.db.execute(select(User).where(User.id == str(user_id)))
         return result.scalar_one_or_none()
 
-    async def get_by_roll(self, roll_number: str, institution_id: UUID) -> Optional[User]:
+    async def get_by_roll(
+        self, roll_number: str, institution_id: UUID
+    ) -> Optional[User]:
         result = await self.db.execute(
             select(User).where(
                 User.roll_number == roll_number,
@@ -54,7 +54,9 @@ class UserService:
         if search:
             like = f"%{search}%"
             q = q.where(
-                User.full_name.ilike(like) | User.email.ilike(like) | User.roll_number.ilike(like)
+                User.full_name.ilike(like)
+                | User.email.ilike(like)
+                | User.roll_number.ilike(like)
             )
 
         count_q = select(func.count()).select_from(q.subquery())
@@ -102,9 +104,7 @@ class UserService:
         return result.rowcount > 0
 
     async def hard_delete(self, user_id: UUID) -> bool:
-        result = await self.db.execute(
-            delete(User).where(User.id == str(user_id))
-        )
+        result = await self.db.execute(delete(User).where(User.id == str(user_id)))
         await self.db.commit()
         return result.rowcount > 0
 

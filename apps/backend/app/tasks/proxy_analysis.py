@@ -2,7 +2,9 @@ from uuid import UUID
 from app.tasks.celery_app import celery_app
 
 
-@celery_app.task(name="app.tasks.proxy_analysis.analyze_record", bind=True, max_retries=3)
+@celery_app.task(
+    name="app.tasks.proxy_analysis.analyze_record", bind=True, max_retries=3
+)
 def analyze_attendance_record(self, record_id: str):
     """
     Runs Isolation Forest proxy detection on a single attendance record.

@@ -2,7 +2,6 @@ import csv
 import io
 import json
 from datetime import datetime
-from uuid import UUID
 
 from app.tasks.celery_app import celery_app
 
@@ -26,11 +25,10 @@ def generate_report_task(
     try:
         # Import inside task to avoid circular imports at module load
         from app.core.database import SyncSessionLocal  # synchronous session for Celery
-        from app.models.attendance import AttendanceRecord, AttendanceStatus
+        from app.models.attendance import AttendanceRecord
         from app.models.session import ClassSession
         from app.models.course import Course
         from app.models.user import User
-        from sqlalchemy import select
 
         with SyncSessionLocal() as db:
             q = (
@@ -52,25 +50,46 @@ def generate_report_task(
             if course_id:
                 q = q.filter(ClassSession.course_id == course_id)
             if from_date:
-                q = q.filter(ClassSession.scheduled_at >= datetime.fromisoformat(from_date))
+                q = q.filter(
+                    ClassSession.scheduled_at >= datetime.fromisoformat(from_date)
+                )
             if to_date:
-                q = q.filter(ClassSession.scheduled_at <= datetime.fromisoformat(to_date))
+                q = q.filter(
+                    ClassSession.scheduled_at <= datetime.fromisoformat(to_date)
+                )
 
             rows = q.all()
 
         if format == "csv":
             output = io.StringIO()
             writer = csv.writer(output)
-            writer.writerow(["Student Name", "Roll", "Email", "Course",
-                             "Session Date", "Status", "Method", "Proxy Score"])
+            writer.writerow(
+                [
+                    "Student Name",
+                    "Roll",
+                    "Email",
+                    "Course",
+                    "Session Date",
+                    "Status",
+                    "Method",
+                    "Proxy Score",
+                ]
+            )
             for row in rows:
-                writer.writerow([
-                    row.full_name, row.roll_number or "", row.email,
-                    row.course_name,
-                    row.scheduled_at.strftime("%Y-%m-%d %H:%M") if row.scheduled_at else "",
-                    row.status, row.method,
-                    f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
-                ])
+                writer.writerow(
+                    [
+                        row.full_name,
+                        row.roll_number or "",
+                        row.email,
+                        row.course_name,
+                        row.scheduled_at.strftime("%Y-%m-%d %H:%M")
+                        if row.scheduled_at
+                        else "",
+                        row.status,
+                        row.method,
+                        f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
+                    ]
+                )
             content = output.getvalue().encode("utf-8")
             content_type = "text/csv"
             filename = f"report_{job_id}.csv"
@@ -81,7 +100,9 @@ def generate_report_task(
                     "roll_number": row.roll_number,
                     "email": row.email,
                     "course": row.course_name,
-                    "session_date": row.scheduled_at.isoformat() if row.scheduled_at else None,
+                    "session_date": row.scheduled_at.isoformat()
+                    if row.scheduled_at
+                    else None,
                     "status": row.status,
                     "method": row.method,
                     "proxy_score": row.proxy_score,
@@ -96,6 +117,7 @@ def generate_report_task(
         try:
             import boto3
             from app.core.config import settings
+
             s3 = boto3.client(
                 "s3",
                 aws_access_key_id=settings.aws_access_key_id,

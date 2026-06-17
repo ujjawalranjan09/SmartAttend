@@ -17,13 +17,14 @@ def score_proxy_risk(self, attendance_record_id: str):
     try:
         from app.core.database import SyncSessionLocal
         from app.models.attendance import AttendanceRecord, AttendanceStatus
-        from sqlalchemy import select
         import uuid
 
         with SyncSessionLocal() as db:
-            record = db.query(AttendanceRecord).filter(
-                AttendanceRecord.id == uuid.UUID(attendance_record_id)
-            ).first()
+            record = (
+                db.query(AttendanceRecord)
+                .filter(AttendanceRecord.id == uuid.UUID(attendance_record_id))
+                .first()
+            )
 
             if not record:
                 return {"error": "Record not found"}
@@ -32,6 +33,7 @@ def score_proxy_risk(self, attendance_record_id: str):
             record.proxy_score = score
 
             from app.core.config import settings
+
             if score >= settings.proxy_anomaly_threshold:
                 record.status = AttendanceStatus.PROXY_SUSPECTED
                 _create_alert(db, record)
@@ -93,6 +95,7 @@ def _create_alert(db, record):
     """Insert a proxy alert into the alerts table."""
     try:
         from app.models.alert import Alert
+
         alert = Alert(
             student_id=record.student_id,
             attendance_record_id=record.id,

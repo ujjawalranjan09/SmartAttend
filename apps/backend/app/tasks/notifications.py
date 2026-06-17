@@ -11,7 +11,9 @@ def send_low_attendance_alert(student_id: str, course_name: str, pct: float):
 @celery_app.task(name="app.tasks.notifications.send_proxy_alert")
 def send_proxy_alert(faculty_id: str, student_name: str, session_id: str, score: float):
     """Notify faculty of suspected proxy attendance in real time."""
-    print(f"[PROXY] {student_name} flagged in session {session_id} (score: {score:.2f})")
+    print(
+        f"[PROXY] {student_name} flagged in session {session_id} (score: {score:.2f})"
+    )
 
 
 @celery_app.task(name="app.tasks.notifications.send_daily_digest")

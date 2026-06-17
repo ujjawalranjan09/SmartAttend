@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, DateTime, ForeignKey, Float, Boolean, JSON, Enum
+from sqlalchemy import String, DateTime, ForeignKey, Boolean, JSON, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -43,14 +43,16 @@ class AttendanceRecord(Base):
     method: Mapped[AttendanceMethod] = mapped_column(
         Enum(AttendanceMethod), nullable=False
     )
-    marked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    marked_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, index=True
+    )
 
     # Anti-spoofing evidence
     geo_lat: Mapped[float | None]
     geo_lon: Mapped[float | None]
     geo_accuracy_m: Mapped[float | None]
     device_fingerprint: Mapped[str | None] = mapped_column(String(255))
-    wifi_bssid: Mapped[str | None] = mapped_column(String(50))   # classroom router MAC
+    wifi_bssid: Mapped[str | None] = mapped_column(String(50))  # classroom router MAC
     ble_beacon_id: Mapped[str | None] = mapped_column(String(100))
     face_confidence: Mapped[float | None]  # 0-1 cosine similarity score
 

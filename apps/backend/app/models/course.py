@@ -39,6 +39,7 @@ class Course(Base):
 
 class Enrollment(Base):
     """Student <-> Course many-to-many with metadata."""
+
     __tablename__ = "enrollments"
 
     id: Mapped[uuid.UUID] = mapped_column(
