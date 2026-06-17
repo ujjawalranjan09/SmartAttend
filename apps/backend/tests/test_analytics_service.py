@@ -19,10 +19,6 @@ def user_svc(db_session):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    reason="analytics_service._student_weekly_trend references "
-    "ClassSession.scheduled_at which does not exist (field is 'date')"
-)
 async def test_get_student_analytics_no_data(analytics_svc, user_svc, db_session):
     data = UserCreate(
         email="analytics@test.com",

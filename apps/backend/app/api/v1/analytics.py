@@ -116,3 +116,75 @@ async def institution_summary(
         "proxy_alerts_total": proxy_alerts,
         "at_risk_count": len(at_risk),
     }
+
+
+# --- Convenience endpoints used by the frontend ---
+@router.get("/summary")
+async def analytics_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Frontend-friendly summary (uses current user's institution)."""
+    if not current_user.institution_id:
+        return {"message": "No institution", "total_students": 0, "at_risk_count": 0}
+
+    from sqlalchemy import select, func
+    from app.models.user import User as UserModel
+    from app.models.session import ClassSession
+    from app.models.attendance import AttendanceRecord, AttendanceStatus
+
+    student_count = (await db.execute(
+        select(func.count(UserModel.id)).where(
+            UserModel.institution_id == current_user.institution_id,
+            UserModel.role == UserRole.STUDENT,
+            UserModel.is_active == True,
+        )
+    )).scalar() or 0
+
+    active_sessions = (await db.execute(
+        select(func.count(ClassSession.id)).where(ClassSession.status == "active")
+    )).scalar() or 0
+
+    present_today = (await db.execute(
+        select(func.count(AttendanceRecord.id)).where(
+            AttendanceRecord.status == AttendanceStatus.PRESENT,
+        )
+    )).scalar() or 0
+
+    proxy_alerts = (await db.execute(
+        select(func.count(AttendanceRecord.id)).where(
+            AttendanceRecord.status == AttendanceStatus.PROXY_SUSPECTED,
+        )
+    )).scalar() or 0
+
+    svc = AnalyticsService(db)
+    at_risk = await svc.get_at_risk_students(current_user.institution_id)
+
+    return {
+        "institution_id": str(current_user.institution_id),
+        "total_students": student_count,
+        "active_sessions_now": active_sessions,
+        "students_present_today": present_today,
+        "proxy_alerts_total": proxy_alerts,
+        "at_risk_count": len(at_risk),
+    }
+
+
+@router.get("/at-risk")
+async def analytics_at_risk(
+    threshold_pct: float = Query(75.0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.institution_id:
+        return {"count": 0, "students": []}
+    svc = AnalyticsService(db)
+    at_risk = await svc.get_at_risk_students(current_user.institution_id, threshold_pct)
+    return {
+        "institution_id": str(current_user.institution_id),
+        "threshold_pct": threshold_pct,
+        "count": len(at_risk),
+        "students": [s.model_dump() for s in at_risk],
+    }
+
+# reload 05/26/2026 04:11:05

@@ -17,18 +17,17 @@ router = APIRouter()
 
 @router.get("/", response_model=UserListResponse)
 async def list_students(
-    institution_id: UUID = Query(...),
     department_id: Optional[UUID] = Query(None),
     search: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(require_faculty),
+    current_user: User = Depends(require_faculty),
 ):
     svc = UserService(db)
     users, total = await svc.get_all(
-        institution_id=institution_id,
+        institution_id=current_user.institution_id,
         role=UserRole.STUDENT,
         department_id=department_id,
         is_active=is_active,

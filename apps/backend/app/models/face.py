@@ -4,7 +4,12 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
-from pgvector.sqlalchemy import Vector
+
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:
+    # pgvector not installed — fall back to LargeBinary for local dev
+    from sqlalchemy import LargeBinary as Vector  # type: ignore[assignment]
 
 from app.core.database import Base
 

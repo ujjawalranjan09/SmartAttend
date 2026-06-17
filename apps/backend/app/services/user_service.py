@@ -1,3 +1,4 @@
+import uuid
 from uuid import UUID
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,12 +21,14 @@ class UserService:
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: str | UUID) -> Optional[User]:
-        result = await self.db.execute(
-            select(User).where(User.id == str(user_id))
-        )
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
-    async def get_by_roll(self, roll_number: str, institution_id: UUID) -> Optional[User]:
+    async def get_by_roll(
+        self, roll_number: str, institution_id: UUID
+    ) -> Optional[User]:
         result = await self.db.execute(
             select(User).where(
                 User.roll_number == roll_number,
@@ -54,7 +57,9 @@ class UserService:
         if search:
             like = f"%{search}%"
             q = q.where(
-                User.full_name.ilike(like) | User.email.ilike(like) | User.roll_number.ilike(like)
+                User.full_name.ilike(like)
+                | User.email.ilike(like)
+                | User.roll_number.ilike(like)
             )
 
         count_q = select(func.count()).select_from(q.subquery())
@@ -95,16 +100,18 @@ class UserService:
         return user
 
     async def deactivate(self, user_id: UUID) -> bool:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
         result = await self.db.execute(
-            update(User).where(User.id == str(user_id)).values(is_active=False)
+            update(User).where(User.id == user_id).values(is_active=False)
         )
         await self.db.commit()
         return result.rowcount > 0
 
     async def hard_delete(self, user_id: UUID) -> bool:
-        result = await self.db.execute(
-            delete(User).where(User.id == str(user_id))
-        )
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        result = await self.db.execute(delete(User).where(User.id == user_id))
         await self.db.commit()
         return result.rowcount > 0
 
@@ -125,9 +132,11 @@ class UserService:
         return {"created": created, "failed": failed, "errors": errors}
 
     async def enable_totp(self, user_id: UUID, secret: str) -> bool:
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
         result = await self.db.execute(
             update(User)
-            .where(User.id == str(user_id))
+            .where(User.id == user_id)
             .values(totp_secret=secret, totp_enabled=True)
         )
         await self.db.commit()

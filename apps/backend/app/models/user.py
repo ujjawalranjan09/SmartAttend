@@ -23,11 +23,13 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
     phone: Mapped[str | None] = mapped_column(String(20), unique=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, native_enum=False), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
     institution_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("institutions.id"), index=True
     )
@@ -37,6 +39,7 @@ class User(Base):
     roll_number: Mapped[str | None] = mapped_column(String(50))  # students only
     employee_id: Mapped[str | None] = mapped_column(String(50))  # faculty/staff
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     totp_secret: Mapped[str | None] = mapped_column(String(64))  # for 2FA
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -52,6 +55,10 @@ class User(Base):
     face_embedding = relationship("FaceEmbedding", back_populates="user", uselist=False)
     attendance_records = relationship("AttendanceRecord", back_populates="student")
     enrollments = relationship("Enrollment", back_populates="student")
+    notifications = relationship("Notification", back_populates="user")
+    password_resets = relationship("PasswordReset", back_populates="user")
+    student_profile = relationship("StudentProfile", back_populates="user", uselist=False)
+    student_goals = relationship("StudentGoal", back_populates="student")
 
     def __repr__(self) -> str:
         return f"<User {self.email} [{self.role}]>"

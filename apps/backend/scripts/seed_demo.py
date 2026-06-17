@@ -2,6 +2,7 @@
 Seed script — creates demo institution, faculty, students, course, and sessions.
 Run: python scripts/seed_demo.py
 """
+
 import asyncio
 import uuid
 from datetime import datetime, timedelta
@@ -15,6 +16,8 @@ from app.models.institution import Institution, Department
 from app.models.user import User, UserRole
 from app.models.course import Course, Enrollment
 from app.models.session import ClassSession
+from app.models.notification import Notification
+from app.models.audit_log import AuditLog
 
 
 async def seed():
@@ -52,8 +55,8 @@ async def seed():
             id=uuid.uuid4(),
             email="admin@smartattend.in",
             full_name="System Admin",
-            hashed_password=hash_password("admin123"),
-            role=UserRole.ADMIN,
+            hashed_password=hash_password("Admin@1234"),
+            role=UserRole.ADMIN.value,
             institution_id=inst.id,
             department_id=dept.id,
             is_active=True,
@@ -66,8 +69,8 @@ async def seed():
             id=uuid.uuid4(),
             email="faculty@smartattend.in",
             full_name="Prof. Ramesh Sharma",
-            hashed_password=hash_password("faculty123"),
-            role=UserRole.FACULTY,
+            hashed_password=hash_password("Faculty@1234"),
+            role=UserRole.FACULTY.value,
             institution_id=inst.id,
             department_id=dept.id,
             employee_id="EMP001",
@@ -83,8 +86,8 @@ async def seed():
                 id=uuid.uuid4(),
                 email=f"student{i}@smartattend.in",
                 full_name=f"Student {i}",
-                hashed_password=hash_password("student123"),
-                role=UserRole.STUDENT,
+                hashed_password=hash_password("Student@1234"),
+                role=UserRole.STUDENT.value,
                 institution_id=inst.id,
                 department_id=dept.id,
                 roll_number=f"IT2021{i:03d}",
@@ -133,6 +136,108 @@ async def seed():
                 created_at=datetime.utcnow(),
             )
             db.add(session)
+
+        # Notifications
+        notifications = [
+            Notification(
+                id=uuid.uuid4(),
+                user_id=students[0].id,
+                title="Upcoming Class",
+                body="Data Structures & Algorithms session tomorrow at 10:00 AM in IT-Lab-3.",
+                type="reminder",
+                is_read=False,
+                created_at=datetime.utcnow(),
+            ),
+            Notification(
+                id=uuid.uuid4(),
+                user_id=students[1].id,
+                title="Schedule Changed",
+                body="Your DSA lab has been rescheduled to Friday 2:00 PM.",
+                type="alert",
+                is_read=False,
+                created_at=datetime.utcnow(),
+            ),
+            Notification(
+                id=uuid.uuid4(),
+                user_id=faculty.id,
+                title="Attendance Report Ready",
+                body="Attendance report for IT401 has been generated. Check your dashboard.",
+                type="system",
+                is_read=False,
+                created_at=datetime.utcnow(),
+            ),
+            Notification(
+                id=uuid.uuid4(),
+                user_id=students[2].id,
+                title="Assignment Due",
+                body="Assignment 3 on Graph Algorithms is due on Friday.",
+                type="reminder",
+                is_read=False,
+                created_at=datetime.utcnow(),
+            ),
+            Notification(
+                id=uuid.uuid4(),
+                user_id=admin.id,
+                title="New Enrollment",
+                body="5 new students have been enrolled in IT401.",
+                type="system",
+                is_read=False,
+                created_at=datetime.utcnow(),
+            ),
+        ]
+        for n in notifications:
+            db.add(n)
+
+        # Audit Logs
+        audit_logs = [
+            AuditLog(
+                id=uuid.uuid4(),
+                user_id=admin.id,
+                action="User.create",
+                resource_type="user",
+                resource_id=faculty.id,
+                old_value=None,
+                new_value={
+                    "email": "faculty@smartattend.in",
+                    "role": "faculty",
+                    "description": "seed data",
+                },
+                ip_address="127.0.0.1",
+                created_at=datetime.utcnow(),
+            ),
+            AuditLog(
+                id=uuid.uuid4(),
+                user_id=admin.id,
+                action="ClassSession.create",
+                resource_type="class_session",
+                resource_id=None,
+                old_value=None,
+                new_value={
+                    "course_code": "IT401",
+                    "room": "IT-Lab-3",
+                    "description": "seed data",
+                },
+                ip_address="127.0.0.1",
+                created_at=datetime.utcnow(),
+            ),
+            AuditLog(
+                id=uuid.uuid4(),
+                user_id=admin.id,
+                action="Enrollment.create",
+                resource_type="enrollment",
+                resource_id=None,
+                old_value=None,
+                new_value={
+                    "course_code": "IT401",
+                    "student_count": 5,
+                    "description": "seed data",
+                },
+                ip_address="127.0.0.1",
+                created_at=datetime.utcnow(),
+            ),
+        ]
+        for log in audit_logs:
+            db.add(log)
 
         await db.commit()
         print("\n✅ Demo data seeded successfully!")

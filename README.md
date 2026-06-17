@@ -1,104 +1,98 @@
 # 🎓 SmartAttend — AI-Augmented Attendance Intelligence Platform
 
-> **Eliminate manual roll calls. Detect proxy fraud in real time. Give faculty actionable insights.**  
+> **Eliminate manual roll calls. Detect proxy fraud in real time. Give faculty actionable insights.**
 > Built for India's 40,000+ colleges and 1,000+ universities.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 
 ---
 
 ## 📋 Table of Contents
 
-1. [Problem Statement](#-problem-statement)
-2. [Solution Overview](#-solution-smartattend)
+1. [What is SmartAttend](#-what-is-smartattend)
+2. [Key Features](#-key-features)
 3. [System Architecture](#-system-architecture)
 4. [Tech Stack](#-tech-stack)
 5. [Repository Structure](#-repository-structure)
 6. [Quick Start](#-quick-start)
-7. [API Documentation](#-api-documentation)
-8. [ML Modules](#-ml-modules)
-9. [Deployment](#-deployment)
-10. [Success Metrics](#-success-metrics)
+7. [Demo Credentials](#-demo-credentials)
+8. [API Surface](#-api-surface)
+9. [PWA + Classroom Display Kiosk](#-pwa--classroom-display-kiosk)
+10. [Deployment Notes](#-deployment-notes)
 11. [Risks & Mitigations](#-risks--mitigations)
 12. [Contributing](#-contributing)
 13. [License](#-license)
 
 ---
 
-## 🔴 Problem Statement
+## 🎯 What is SmartAttend
 
-India's higher education system enrolls **43+ million students** across 1,000+ universities and 40,000+ colleges — yet attendance tracking remains largely manual. Here's what that costs:
+SmartAttend is a **cloud-native, role-aware attendance platform** combining three anti-spoofing input methods (Dynamic QR + Geofence, Facial Recognition, AI routine planner) into a single fast, modern web experience for students, faculty, and administrators.
 
-| Pain Point | Impact |
-|---|---|
-| Manual roll call (8–12 min/session) | 15–25 hours of lost teaching time per course/year |
-| Undetected proxy attendance | Fraudulent records affect exam eligibility & scholarships |
-| Fragmented data across departments | No unified academic risk visibility |
-| Delayed detection of absenteeism | At-risk students identified too late for intervention |
-| Manual report compilation | Admin staff burdened for days before exams |
-| Online/hybrid class gap | No reliable attendance mechanism for virtual sessions |
-| Poor Tier-2/3 infrastructure | Internet outages break most existing digital solutions |
-
-### Why Existing Solutions Fail
-
-- **Biometric devices** — High cost, no analytics, vulnerable to spoofing, useless for online classes
-- **Excel/ERP modules** — Faculty still waste time entering data; zero proxy detection or ML insights
-- **Simple QR apps** — Screenshot sharing defeats the system; no location binding, no offline support
+**Class modes supported:** In-person · Online · Hybrid
 
 ---
 
-## ✅ Solution: SmartAttend
+## ✨ Key Features
 
-SmartAttend is a **cloud-native, offline-first attendance platform** combining three anti-spoofing input methods:
+### For Students
+- 📊 **Personalized dashboard** — overall attendance %, classes missed, trend delta, 75% threshold tracker
+- 🧠 **AI daily routine** — given profile (interests, strengths, career goals), the planner fills free periods with study suggestions and goals
+- 🎯 **Goal tracking** — set academic/career/skill goals with milestones and progress bars
+- 📷 **QR scanner with face verification** — webcam capture + face enrollment for biometric verification
+- 📈 **Progress analytics** — 8-week attendance trend, 14-day forecast, per-course breakdown
+- 🌙 **Light/dark theme** with system-aware colors
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              MULTI-LAYER ATTENDANCE VALIDATION               │
-├────────────────┬──────────────────┬─────────────────────────┤
-│  Dynamic QR    │  Facial Recog.   │  BLE/WiFi Proximity     │
-│  + Geo-fence   │  (On-device)     │  (Network fingerprint)  │
-└────────────────┴──────────────────┴─────────────────────────┘
-         ↓                 ↓                    ↓
-         └─────────────────┴────────────────────┘
-                           ↓
-              Proxy Detection ML Engine
-                           ↓
-              Real-time Analytics Dashboard
-```
+### For Faculty
+- 🚀 **Session start in 3 clicks** — pick course, set duration, push QR
+- 📺 **Classroom Display kiosk** — TV-friendly full-screen view with live attendance percentage, hero KPIs, animated live feed
+- 🛡️ **Proxy detection** — flagged rows in attendance grid show risk score
+- 📥 **CSV export** — one-click download of session or course attendance
+- 📅 **Session management** — start/end, QR rotation, room assignment
 
-**Supported Class Modes:** In-person · Online (Zoom/GMeet) · Hybrid
+### For Admins
+- 🏛️ **Institution overview** — total students, faculty, avg attendance, active sessions, at-risk count
+- 📊 **Trend analytics** — 8-week institution-wide trend, department comparison, at-risk student list
+- 🔍 **User management** — searchable student directory, risk-filtered views
+- 📄 **Report generation** — quick export cards, recent reports history
+- ⚙️ **System settings** — face enrollment management, notification preferences, security (2FA, password reset)
+
+### Cross-cutting
+- ⚡ **PWA** — service worker with NetworkFirst cache for `/api`, offline-capable shell, auto-update
+- 🔐 **JWT auth + role-based routing** — students see student-only nav, faculty see teaching nav, admins see institutional nav
+- 🎨 **Modern SaaS design system** — Linear/Vercel/Stripe-inspired, refined neutrals, teal accent, soft shadows, micro-interactions
+- 📱 **Mobile-first responsive** — collapsible sidebar drawer, touch-friendly hit targets
 
 ---
 
 ## 🏗️ System Architecture
 
-### Three-Layer Technical Architecture
-
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        CLIENT LAYER                              │
-│  React PWA (Student & Faculty)  │  Admin Dashboard              │
-│  Offline-first (IndexedDB)      │  React + Recharts             │
-│  On-device face embed (TF.js)   │  BLE/WiFi scan                │
-│  Dynamic QR + liveness check    │  Role-based views             │
+│  Vite + React 19 + TS + Tailwind v4 + shadcn-style UI           │
+│  TanStack Query + Zustand  │  Sonner toasts  │  Recharts charts  │
+│  html5-qrcode (camera scan) │  getUserMedia (face enrollment)    │
+│  Standalone kiosk page (/classroom-display.html)                 │
 └──────────────────┬───────────────────────────────────────────────┘
-                   │  HTTPS / WebSocket
+                   │  HTTPS + JWT bearer
 ┌──────────────────▼───────────────────────────────────────────────┐
 │                      BACKEND / API LAYER                         │
-│  FastAPI (Python 3.11+)  │  JWT + OAuth2 Auth                   │
-│  WebSocket (live feed)   │  Celery task queue (async)           │
-│  Proxy Detection Service │  Notification service (SMS/Email)    │
+│  FastAPI (Python 3.11+)  │  Async SQLAlchemy  │  Alembic       │
+│  JWT auth + role guards  │  WebSocket live feed                  │
+│  Celery task queue       │  Notification service (SMS/Email)    │
 └──────────────────┬───────────────────────────────────────────────┘
                    │
 ┌──────────────────▼───────────────────────────────────────────────┐
 │                      DATA & ML LAYER                             │
-│  PostgreSQL 16 + TimescaleDB  │  Redis (cache, rate limit)      │
-│  pgvector (face embeddings)   │  Scikit-learn anomaly detect    │
-│  AWS S3 / Cloudflare R2       │  Prophet (trend forecasting)    │
+│  PostgreSQL 16 (smartattend DB)  │  Redis (cache, QR TTL)        │
+│  pgvector (face embeddings)       │  FastAPI ML service (:8001)  │
+│  Isolation Forest (proxy detect)  │  Prophet (forecasting)       │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -106,20 +100,23 @@ SmartAttend is a **cloud-native, offline-first attendance platform** combining t
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Purpose |
+| Layer | Technology | Notes |
 |---|---|---|
-| Frontend | React 18 + TypeScript + Vite | PWA, component reuse across roles |
-| Mobile (opt.) | React Native / Flutter | Camera access, BLE scanning |
-| Backend API | FastAPI (Python 3.11+) | Async endpoints, auto OpenAPI docs |
-| Auth | JWT + OAuth2 + TOTP 2FA | Role-based: student/faculty/HOD/admin/parent |
-| Primary DB | PostgreSQL 16 + TimescaleDB | ACID transactions + time-series hypertables |
-| Cache | Redis 7 | QR token TTL, rate limiting, WebSocket pub/sub |
-| Face Recognition | DeepFace / InsightFace + pgvector | 512-dim embeddings, cosine similarity |
-| ML Analytics | Scikit-learn + Prophet | Isolation Forest anomaly detection + forecasting |
-| Task Queue | Celery + Redis broker | Async reports, bulk notifications, ML scoring |
-| Real-time | WebSockets (FastAPI) | Live attendance feed during class |
-| Cloud Infra | AWS / Railway / Render | Auto-scaling API, managed PostgreSQL |
-| CI/CD | GitHub Actions + Docker | Automated tests, containerized deploys |
+| **Frontend** | Vite 6 + React 19 + TypeScript 5.7 | Strict TS, ESM, `@/*` path alias |
+| **Styling** | Tailwind CSS v4 (CSS-first) | `@theme` block in `globals.css`, no `tailwind.config.js` |
+| **UI primitives** | Custom shadcn-style (Radix + CVA) | `button`, `card`, `dialog`, `dropdown`, `tabs`, `toast`, etc. |
+| **State** | Zustand + persist (localStorage) | `auth` (token+user), `theme` (light/dark) |
+| **Data fetching** | TanStack Query v5 | Auto-cache, 5s refetch, retry logic |
+| **Charts** | Recharts | Area, Bar, Line, Pie, ResponsiveContainer |
+| **Forms** | react-hook-form + zod | Tag inputs, multi-step, validation |
+| **Icons** | lucide-react | Consistent stroke width, tree-shaken |
+| **Toasts** | Sonner | Rich colors, promise API, undo action |
+| **Camera** | html5-qrcode + getUserMedia | QR scan + face enrollment |
+| **PWA** | vite-plugin-pwa | autoUpdate SW, NetworkFirst for /api |
+| **Backend** | FastAPI 0.111 + SQLAlchemy 2 async | Postgres 16, Alembic migrations |
+| **Task queue** | Celery + Redis broker | Reports, notifications, ML scoring |
+| **Real-time** | WebSockets (FastAPI) | Live session feed |
+| **ML service** | Python + FastAPI (:8001) | Face recognition, anomaly detection |
 
 ---
 
@@ -128,82 +125,62 @@ SmartAttend is a **cloud-native, offline-first attendance platform** combining t
 ```
 SmartAttend/
 ├── apps/
-│   ├── frontend/              # React 18 + TypeScript PWA
+│   ├── frontend/              # ✅ Vite + React 19 + TS + Tailwind v4 (active)
 │   │   ├── src/
-│   │   │   ├── components/    # Reusable UI components
-│   │   │   ├── pages/         # Route-level pages
-│   │   │   ├── hooks/         # Custom React hooks
-│   │   │   ├── store/         # Zustand state management
-│   │   │   ├── services/      # API client + WebSocket
-│   │   │   └── utils/         # QR scanner, face embed utils
-│   │   ├── public/
-│   │   │   └── sw.js          # Service Worker (offline-first)
-│   │   ├── package.json
-│   │   └── vite.config.ts
+│   │   │   ├── components/
+│   │   │   │   ├── ui/        # 12+ shadcn primitives (button, card, dialog, …)
+│   │   │   │   ├── common/    # KpiCard, AttendanceRing, PageHeader
+│   │   │   │   └── layout/    # Sidebar, Topbar, AppShell
+│   │   │   ├── features/
+│   │   │   │   ├── auth/      # LoginPage, ForgotPassword, ResetPassword
+│   │   │   │   ├── dashboard/ # StudentDashboard, FacultyDashboard, AdminDashboard
+│   │   │   │   ├── sessions/  # SessionsPage + QR/Display dialogs
+│   │   │   │   ├── attendance/# AttendancePage (student + faculty views)
+│   │   │   │   ├── students/  # StudentsPage (search + risk filter)
+│   │   │   │   ├── analytics/ # AnalyticsPage (trend + forecast + bars)
+│   │   │   │   ├── reports/   # ReportsPage (generate + export cards)
+│   │   │   │   ├── settings/  # SettingsPage (profile + face enrollment)
+│   │   │   │   ├── profile/   # ProfilePage (interests + goals CRUD)
+│   │   │   │   ├── daily-plan/# DailyPlanPage (free periods + AI routine)
+│   │   │   │   ├── qr-scanner/# QrScannerPage (camera + manual entry)
+│   │   │   │   └── classroom-display/  # Standalone kiosk page
+│   │   │   ├── app/router.tsx # RequireAuth + role-aware routes
+│   │   │   ├── store/         # auth.ts, theme.ts
+│   │   │   ├── lib/           # api.ts (14 endpoint groups), utils.ts, nav.ts
+│   │   │   └── styles/        # globals.css (Tailwind v4 @theme + dark mode)
+│   │   ├── classroom-display.html  # Standalone kiosk entry
+│   │   ├── public/            # favicon, manifest, icons
+│   │   ├── vite.config.ts     # /api proxy → :8000, multi-page build
+│   │   └── package.json
 │   │
 │   ├── backend/               # FastAPI Python 3.11+
 │   │   ├── app/
-│   │   │   ├── api/           # Route handlers
-│   │   │   │   ├── v1/
-│   │   │   │   │   ├── auth.py
-│   │   │   │   │   ├── attendance.py
-│   │   │   │   │   ├── sessions.py
-│   │   │   │   │   ├── students.py
-│   │   │   │   │   ├── faculty.py
-│   │   │   │   │   ├── analytics.py
-│   │   │   │   │   └── reports.py
-│   │   │   ├── core/
-│   │   │   │   ├── config.py
-│   │   │   │   ├── security.py
-│   │   │   │   ├── database.py
-│   │   │   │   └── redis.py
-│   │   │   ├── models/        # SQLAlchemy ORM models
-│   │   │   ├── schemas/       # Pydantic request/response schemas
-│   │   │   ├── services/      # Business logic layer
-│   │   │   ├── tasks/         # Celery async tasks
-│   │   │   └── websocket/     # WebSocket handlers
-│   │   ├── alembic/           # DB migrations
-│   │   ├── tests/
-│   │   ├── requirements.txt
-│   │   └── Dockerfile
+│   │   │   ├── api/v1/        # auth, users, students, faculty, sessions,
+│   │   │   │                  # attendance, qr, analytics, reports, notifications,
+│   │   │   │                  # settings, daily-plans, ml, faces, classrooms
+│   │   │   ├── core/          # config, security, database, redis
+│   │   │   ├── models/        # SQLAlchemy ORM
+│   │   │   ├── schemas/       # Pydantic
+│   │   │   ├── services/      # Business logic
+│   │   │   ├── tasks/         # Celery async
+│   │   │   └── websocket/
+│   │   ├── alembic/
+│   │   ├── tests/             # pytest suite (89+ tests)
+│   │   └── .venv/             # Local venv (Windows)
 │   │
-│   └── ml-service/            # Python ML microservice
-│       ├── app/
-│       │   ├── face/          # InsightFace embedding pipeline
-│       │   ├── anomaly/       # Isolation Forest proxy detection
-│       │   ├── forecast/      # Prophet trend forecasting
-│       │   └── api.py         # FastAPI ML endpoints
-│       ├── models/            # Serialized ML model artifacts
-│       ├── requirements.txt
-│       └── Dockerfile
-│
-├── packages/
-│   └── shared-types/          # Shared TypeScript + Pydantic types
-│
-├── infra/
-│   ├── docker-compose.yml
-│   ├── docker-compose.prod.yml
-│   └── nginx/
-│       └── nginx.conf
-│
-├── .github/
-│   └── workflows/
-│       ├── ci.yml             # Lint + test + build
-│       └── deploy.yml         # Staging/prod deployment
+│   ├── ml-service/            # Python FastAPI ML microservice (:8001)
+│   │   ├── app/face/          # InsightFace pipeline
+│   │   ├── app/anomaly/       # Isolation Forest
+│   │   ├── app/forecast/      # Prophet
+│   │   └── app/api.py
+│   │
+│   └── frontend-legacy/       # ⚠️ Old vanilla-JS frontend, archived
 │
 ├── docs/
-│   ├── architecture.md
-│   ├── db-schema.md
-│   ├── api-reference.md
-│   └── ml-pipeline.md
-│
-├── scripts/
-│   ├── seed_db.py
-│   └── load_test.py
-│
-├── .env.example
-├── pnpm-workspace.yaml
-├── turbo.json
+│   └── plans/                 # Migration plans (.hermes/plans/)
+├── scripts/                   # seed_db.py, etc.
+├── Makefile                   # make test, make lint, make format
+├── pnpm-workspace.yaml        # (legacy, npm used for frontend now)
 └── README.md
 ```
 
@@ -213,141 +190,148 @@ SmartAttend/
 
 ### Prerequisites
 
-```bash
-# Required
-Node.js 20+, pnpm 9+
-Python 3.11+, Poetry or pip
-Docker + Docker Compose
-PostgreSQL 16 (or use Docker)
-Redis 7 (or use Docker)
-```
+| Tool | Version | Install |
+|---|---|---|
+| Node.js | 20+ | https://nodejs.org |
+| Python | 3.11+ | https://python.org |
+| PostgreSQL | 16+ | https://postgresql.org/download/windows |
+| Redis | 7+ | https://github.com/tarkh/redis-windows or WSL |
 
-### 1. Clone & Install
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/ujjawalranjan09/SmartAttend.git
 cd SmartAttend
 
-# Install all workspaces
-pnpm install
+# Frontend deps
+cd apps/frontend
+npm.cmd install         # Windows; `npm install` on Mac/Linux
 
-# Install Python deps
-cd apps/backend && pip install -r requirements.txt
-cd ../ml-service && pip install -r requirements.txt
+# Backend deps
+cd ../backend
+python -m venv .venv
+.venv\Scripts\activate     # Windows; `source .venv/bin/activate` on Mac/Linux
+pip install -r requirements.txt
 ```
 
-### 2. Environment Setup
+### 2. Database setup
 
 ```bash
-cp .env.example .env
-# Edit .env with your DB, Redis, JWT secret, AWS keys, etc.
-```
+# Create DB + role in psql:
+#   CREATE USER smartattend WITH PASSWORD 'smartattend_secret';
+#   CREATE DATABASE smartattend OWNER smartattend;
+#   GRANT ALL PRIVILEGES ON DATABASE smartattend TO smartattend;
 
-### 3. Run with Docker Compose (Recommended)
-
-```bash
-cd infra
-docker-compose up --build
-```
-
-Services start at:
-- **Frontend PWA:** http://localhost:5173
-- **Backend API:** http://localhost:8000
-- **API Docs (Swagger):** http://localhost:8000/docs
-- **ML Service:** http://localhost:8001
-- **Grafana Metrics:** http://localhost:3000
-
-### 4. Database Setup
-
-```bash
-# Run migrations
 cd apps/backend
 alembic upgrade head
+python ../../scripts/seed_db.py     # seeds demo accounts
+```
 
-# Seed demo data
-python ../../scripts/seed_db.py
+### 3. Environment
+
+Copy `.env.example` → `.env` in `apps/backend/` and `apps/frontend/`. The defaults work for local Postgres + Redis on `localhost:5432` / `localhost:6379`.
+
+### 4. Run all three services
+
+```bash
+# Terminal 1 — backend API
+cd apps/backend
+.venv\Scripts\uvicorn.exe app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2 — ML service (optional, face rec)
+cd apps/ml-service
+uvicorn app.api:app --host 0.0.0.0 --port 8001 --reload
+
+# Terminal 3 — frontend
+cd apps/frontend
+npm.cmd run dev
+```
+
+Open http://localhost:5173 — login with a demo account below.
+
+### Alternative (Makefile)
+
+```bash
+make install        # installs all workspaces
+make test           # runs backend pytest suite
+make lint           # ruff + eslint
+make format         # black + prettier
 ```
 
 ---
 
-## 📡 API Documentation
+## 🔐 Demo Credentials
 
-Full interactive API docs available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the backend is running.
+The seed script creates three role-based users:
 
-### Core Endpoints
-
-| Method | Endpoint | Description |
+| Role | Email | Password |
 |---|---|---|
-| `POST` | `/api/v1/auth/login` | JWT token + refresh token |
-| `POST` | `/api/v1/auth/refresh` | Refresh access token |
-| `POST` | `/api/v1/sessions/start` | Faculty starts a class session |
-| `POST` | `/api/v1/sessions/{id}/qr` | Generate dynamic QR token |
-| `POST` | `/api/v1/attendance/mark` | Student marks attendance (multi-factor) |
-| `GET` | `/api/v1/attendance/session/{id}` | Live attendance for a session |
-| `GET` | `/api/v1/analytics/student/{id}` | Student attendance analytics |
-| `GET` | `/api/v1/analytics/course/{id}` | Course-level engagement report |
-| `GET` | `/api/v1/reports/export` | Export PDF/CSV report |
-| `WS` | `/ws/session/{id}` | Real-time session WebSocket feed |
+| Admin | `admin@smartattend.in` | `Admin@1234` |
+| Faculty | `faculty@smartattend.in` | `Faculty@1234` |
+| Student | `student1@smartattend.in` | `Student@1234` |
+
+Login page has **one-click demo chips** that pre-fill + submit these accounts.
 
 ---
 
-## 🤖 ML Modules
+## 📡 API Surface
 
-### 1. Face Recognition Pipeline
-- **Model:** InsightFace ArcFace (evaluated on diverse skin tone datasets)
-- **Storage:** 512-dimensional float vectors in pgvector
-- **On-device:** TensorFlow.js for browser-side embedding (privacy-preserving)
-- **Matching:** Cosine similarity with configurable threshold (default: 0.6)
-- **Fallback:** QR + geo-fence only mode if face recognition is disabled
+Base: `http://localhost:8000/api/v1` (Vite proxies `/api/*` → `:8000` automatically).
 
-### 2. Proxy Detection (Isolation Forest)
-- **Features:** Scan-time deviation, device fingerprint consistency, geo-cluster analysis, BLE beacon match, historical attendance pattern
-- **Output:** Anomaly score (0–1); threshold triggers `proxy_suspected` alert
-- **Training:** Per-institution model fine-tuning on anonymized behavioral data
+| Group | Endpoints | Purpose |
+|---|---|---|
+| `auth` | `/login`, `/refresh`, `/me`, `/forgot-password`, `/reset-password` | JWT auth |
+| `users` | CRUD + role management | Admin user ops |
+| `students` | `/students`, `/at-risk`, `/bulk-enroll` | Student records |
+| `faculty` | `/faculty`, `/faculty/{id}/courses` | Faculty records |
+| `sessions` | CRUD + `/start`, `/end`, `/{id}/qr`, `/{id}/attendance` | Class sessions |
+| `attendance` | `/mark`, `/session/{id}`, `/student/{id}` | Attendance marking |
+| `qr` | `/validate`, `/rotate` | QR token validation |
+| `analytics` | `/overview`, `/student/{id}`, `/course/{id}`, `/department/{id}` | Aggregations |
+| `reports` | `/generate`, `/export/csv`, `/{id}` | PDF/CSV reports |
+| `notifications` | CRUD + `/mark-read`, `/unread-count` | In-app inbox |
+| `settings` | `/{user_id}` | Per-user prefs |
+| `daily-plans` | `/routine`, `/free-periods`, `/invalidate` | AI planner |
+| `goals` | CRUD + `/progress`, `/milestones` | Goal tracker |
+| `faces` | `/status`, `/enroll` (multipart), `/delete` | Face enrollment |
+| `ml` | `/face/verify`, `/anomaly/score` | ML service proxy |
+| `classrooms` | `/display-token/{session_id}` | Kiosk token |
 
-### 3. Attendance Trend Forecasting (Prophet)
-- Forecasts 2-week attendance trajectory per student
-- Triggers early-warning alerts when predicted attendance falls below 75% threshold
-- Faculty dashboard shows trend line + confidence interval
-
----
-
-## ☁️ Deployment
-
-### Production Architecture
-
-```
-Cloudflare CDN
-      ↓
-  Vercel (Frontend PWA)
-      ↓
-AWS ALB (Load Balancer)
-      ↓
-┌─────┴─────┐
-ECS Fargate  ECS Fargate   (Auto-scaled backend pods)
-      ↓
-  RDS PostgreSQL + ElastiCache Redis
-      ↓
-  S3 (face media) + CloudWatch (logs)
-```
-
-### Environment Variables
-
-See [`.env.example`](.env.example) for all required configuration keys.
+Full interactive docs at **http://localhost:8000/docs** (Swagger) and **/redoc**.
 
 ---
 
-## 📊 Success Metrics
+## 📺 PWA + Classroom Display Kiosk
 
-| Metric | Target |
-|---|---|
-| Roll call time saved | ≥ 95% (90 sec vs 8–12 min) |
-| Proxy fraud reduction | ≥ 90% |
-| At-risk student detection lag | < 24 hours |
-| Offline resilience | Zero data loss at 0% connectivity |
-| Concurrent QR scan capacity | 200+ simultaneous scans |
-| API response time (p99) | < 300ms |
-| Face recognition accuracy | ≥ 97% (across demographic groups) |
+The build produces **two entry points**:
+
+| Entry | URL | Bundle |
+|---|---|---|
+| Main app | `/` | 723 KB / 199 KB gz |
+| Kiosk | `/classroom-display.html?session_id={id}&token={token}` | 9 KB / 3 KB gz |
+
+The kiosk page is a full-screen TV view that polls `/sessions/{id}/attendance` every 5 s and shows a giant attendance %, present/total hero cards, an animated live attendance feed, a live clock, and a SmartAttend watermark. Open it from any session's "Display" button — the URL token is rotated automatically.
+
+**PWA:**
+- Service worker auto-generated by `vite-plugin-pwa` (`autoUpdate` mode)
+- 10 entries precached (≈1 MB shell)
+- NetworkFirst cache for `/api` requests with 5 s timeout, 50-entry max
+
+**Install:** In Chrome/Edge, click the install icon in the address bar → "Install SmartAttend".
+
+---
+
+## 📊 Recent Build Stats
+
+| Bundle | Raw | Gzipped |
+|---|---|---|
+| Main JS | 723 KB | 199 KB |
+| Kiosk JS | 9 KB | 3 KB |
+| Workbox runtime | 5.75 KB | 2.36 KB |
+| CSS | 64.6 KB | 10.6 KB |
+| Total precache | ~1 MB | — |
+
+Modules: 2362 · TypeScript errors: 0 · Build time: ~8 s
 
 ---
 
@@ -355,12 +339,12 @@ See [`.env.example`](.env.example) for all required configuration keys.
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Students without smartphones | Medium | Faculty manual override; shared devices; QR-only fallback |
-| Facial recognition bias | High | InsightFace (ArcFace) evaluated on diverse datasets; face always supplementary |
-| GPS spoofing | Medium | Cross-validate with WiFi BSSID + BLE beacon proximity |
+| Students without smartphones | Medium | Faculty manual override; QR-only fallback; classroom kiosk |
+| Facial recognition bias | High | InsightFace ArcFace (evaluated on diverse datasets); face always supplementary to QR |
+| GPS spoofing | Medium | Cross-validate with WiFi BSSID + BLE beacon proximity (planned) |
 | Faculty resistance | Medium | Zero-training UX; single button to start/end session |
-| Data breach (face embeddings) | High | Vectors only (not photos); AES-256 per-institution encryption; pen testing |
-| Exam season scale spike | Medium | AWS ECS auto-scaling; Redis handles QR validation at sub-ms |
+| Data breach (face embeddings) | High | Vectors only (not photos); per-institution encryption (planned) |
+| Exam season scale spike | Medium | Redis handles QR validation at sub-ms; backend stateless |
 | Rural internet outages | Low | Offline-first PWA with Service Worker + IndexedDB sync |
 
 ---
@@ -373,8 +357,6 @@ See [`.env.example`](.env.example) for all required configuration keys.
 4. Push and open a Pull Request against `main`
 5. Ensure all GitHub Actions checks pass
 
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
-
 ---
 
 ## 📄 License
@@ -386,7 +368,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 <p align="center">
   Built for India's students, faculty, and institutions 🇮🇳
   <br/>
-  <a href="https://github.com/ujjawalranjan09/SmartAttend">GitHub</a> · 
-  <a href="https://github.com/ujjawalranjan09/SmartAttend/issues">Issues</a> · 
+  <a href="https://github.com/ujjawalranjan09/SmartAttend">GitHub</a> ·
+  <a href="https://github.com/ujjawalranjan09/SmartAttend/issues">Issues</a> ·
   <a href="https://github.com/ujjawalranjan09/SmartAttend/wiki">Wiki</a>
 </p>

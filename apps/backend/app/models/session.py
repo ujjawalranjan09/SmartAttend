@@ -54,7 +54,7 @@ class ClassSession(Base):
     faculty_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    date: Mapped[datetime] = mapped_column("scheduled_at", DateTime, nullable=False, index=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     status: Mapped[SessionStatus] = mapped_column(

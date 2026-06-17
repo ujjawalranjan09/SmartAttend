@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import tempfile
 from datetime import datetime
 from uuid import UUID
 
@@ -19,13 +20,11 @@ def generate_report_task(
     format: str = "csv",
 ):
     """
-    Celery task: generate attendance report and upload to S3 / local storage.
-    Supports formats: csv, json.
-    PDF support requires WeasyPrint — add to requirements if needed.
+    Celery task: generate attendance report as CSV or PDF.
+    Stores result path in Redis for status polling.
     """
     try:
-        # Import inside task to avoid circular imports at module load
-        from app.core.database import SyncSessionLocal  # synchronous session for Celery
+        from app.core.database import SyncSessionLocal
         from app.models.attendance import AttendanceRecord, AttendanceStatus
         from app.models.session import ClassSession
         from app.models.course import Course
@@ -39,7 +38,7 @@ def generate_report_task(
                     User.roll_number,
                     User.email,
                     Course.name.label("course_name"),
-                    ClassSession.scheduled_at,
+                    ClassSession.date,
                     AttendanceRecord.status,
                     AttendanceRecord.method,
                     AttendanceRecord.proxy_score,
@@ -52,71 +51,162 @@ def generate_report_task(
             if course_id:
                 q = q.filter(ClassSession.course_id == course_id)
             if from_date:
-                q = q.filter(ClassSession.scheduled_at >= datetime.fromisoformat(from_date))
+                q = q.filter(
+                    ClassSession.date >= datetime.fromisoformat(from_date)
+                )
             if to_date:
-                q = q.filter(ClassSession.scheduled_at <= datetime.fromisoformat(to_date))
+                q = q.filter(
+                    ClassSession.date <= datetime.fromisoformat(to_date)
+                )
 
             rows = q.all()
 
         if format == "csv":
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(["Student Name", "Roll", "Email", "Course",
-                             "Session Date", "Status", "Method", "Proxy Score"])
-            for row in rows:
-                writer.writerow([
-                    row.full_name, row.roll_number or "", row.email,
-                    row.course_name,
-                    row.scheduled_at.strftime("%Y-%m-%d %H:%M") if row.scheduled_at else "",
-                    row.status, row.method,
-                    f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
-                ])
-            content = output.getvalue().encode("utf-8")
-            content_type = "text/csv"
-            filename = f"report_{job_id}.csv"
+            path = _write_csv(job_id, rows)
+        elif format == "pdf":
+            path = _write_pdf(job_id, rows, institution_id, from_date, to_date)
         else:
-            data = [
-                {
-                    "student_name": row.full_name,
-                    "roll_number": row.roll_number,
-                    "email": row.email,
-                    "course": row.course_name,
-                    "session_date": row.scheduled_at.isoformat() if row.scheduled_at else None,
-                    "status": row.status,
-                    "method": row.method,
-                    "proxy_score": row.proxy_score,
-                }
-                for row in rows
-            ]
-            content = json.dumps(data, indent=2).encode("utf-8")
-            content_type = "application/json"
-            filename = f"report_{job_id}.json"
+            path = _write_csv(job_id, rows)
 
-        # Upload to S3 (if configured) or save locally
+        import redis.asyncio as aioredis
+        from app.core.config import settings
+
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+
+        async def _store():
+            await r.set(f"report_status:{job_id}", "completed", ex=3600)
+            await r.set(f"report_path:{job_id}", path, ex=3600)
+            await r.aclose()
+
+        import asyncio
+
         try:
-            import boto3
-            from app.core.config import settings
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=settings.aws_access_key_id,
-                aws_secret_access_key=settings.aws_secret_access_key,
-                region_name=settings.aws_region,
-            )
-            s3.put_object(
-                Bucket=settings.s3_bucket_name,
-                Key=f"reports/{filename}",
-                Body=content,
-                ContentType=content_type,
-            )
-            download_url = f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com/reports/{filename}"
-        except Exception:
-            # Fallback: write to /tmp
-            path = f"/tmp/{filename}"
-            with open(path, "wb") as f:
-                f.write(content)
-            download_url = f"/reports/download/{job_id}"
+            loop = asyncio.get_running_loop()
+            loop.create_task(_store())
+        except RuntimeError:
+            asyncio.run(_store())
 
-        return {"job_id": job_id, "status": "done", "download_url": download_url}
+        return {"job_id": job_id, "status": "done", "file_path": path}
 
     except Exception as exc:
+        import redis.asyncio as aioredis
+        from app.core.config import settings
+
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+
+        async def _fail():
+            await r.set(f"report_status:{job_id}", "failed", ex=3600)
+            await r.aclose()
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_fail())
+        except RuntimeError:
+            asyncio.run(_fail())
+
         raise self.retry(exc=exc, countdown=30)
+
+
+def _write_csv(job_id: str, rows) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "Student Name",
+            "Roll",
+            "Email",
+            "Course",
+            "Session Date",
+            "Status",
+            "Method",
+            "Proxy Score",
+        ]
+    )
+    for row in rows:
+        writer.writerow(
+            [
+                row.full_name,
+                row.roll_number or "",
+                row.email,
+                row.course_name,
+                row.date.strftime("%Y-%m-%d %H:%M") if row.date else "",
+                row.status,
+                row.method,
+                f"{row.proxy_score:.3f}" if row.proxy_score is not None else "",
+            ]
+        )
+    path = tempfile.mktemp(suffix=".csv", prefix=f"report_{job_id}_")
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        f.write(output.getvalue())
+    return path
+
+
+def _write_pdf(
+    job_id: str, rows, institution_id: str, from_date: str, to_date: str
+) -> str:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Table,
+        TableStyle,
+        Paragraph,
+        Spacer,
+    )
+
+    path = tempfile.mktemp(suffix=".pdf", prefix=f"report_{job_id}_")
+    doc = SimpleDocTemplate(path, pagesize=landscape(A4))
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("SmartAttend — Attendance Report", styles["Title"]))
+    elements.append(
+        Paragraph(
+            f"Institution: {institution_id} | Period: {from_date} to {to_date}",
+            styles["Normal"],
+        )
+    )
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph(f"Total Records: {len(rows)}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    header = ["Student Name", "Roll", "Email", "Course", "Date", "Status", "Method"]
+    data = [header]
+    for row in rows:
+        data.append(
+            [
+                row.full_name,
+                row.roll_number or "",
+                row.email,
+                row.course_name,
+                row.date.strftime("%Y-%m-%d %H:%M") if row.date else "",
+                str(row.status),
+                row.method or "",
+            ]
+        )
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1976d2")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, 0), 8),
+                ("FONTSIZE", (0, 1), (-1, -1), 7),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#f5f5f5")],
+                ),
+            ]
+        )
+    )
+    elements.append(table)
+
+    doc.build(elements)
+    return path

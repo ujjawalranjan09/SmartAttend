@@ -101,6 +101,21 @@ services:
       - ./apps/backend:/app
     command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
 
+  # ── ML Service (Face, Anomaly, Forecast) ──────────────────────────────────
+  ml:
+    build:
+      context: ./apps/ml-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      MODEL_DIR: /app/models
+    ports:
+      - "8001:8001"
+    volumes:
+      - ml_models:/app/models
+      - ./apps/ml-service:/app
+
   # ── Flower (Celery Monitoring UI) ─────────────────────────────────────────
   flower:
     image: mher/flower:2.0
@@ -116,3 +131,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ml_models:

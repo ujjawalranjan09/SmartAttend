@@ -1,0 +1,8 @@
+{
+  "model_version": "v1781677625",
+  "training_date": "2026-06-17T06:27:14.529472",
+  "sample_count": 50,
+  "feature_count": 7,
+  "contamination": 0.02,
+  "algorithm": "IsolationForest"
+}

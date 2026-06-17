@@ -1,4 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
 from app.models.user import UserRole
 
 
@@ -22,4 +25,36 @@ class TokenResponse(BaseModel):
 
 class TOTPSetupResponse(BaseModel):
     secret: str
-    # Frontend uses this to display QR code for Google Authenticator
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    full_name: str = Field(min_length=2, max_length=200)
+    role: UserRole = UserRole.STUDENT
+    institution_id: UUID
+
+
+class VerifyRegistrationRequest(BaseModel):
+    token: str
+
+
+class UserRegistrationResponse(BaseModel):
+    id: str
+    email: EmailStr
+    full_name: str
+    role: UserRole

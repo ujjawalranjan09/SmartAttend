@@ -10,7 +10,12 @@ from app.core.security import decode_token
 from app.models.user import User, UserRole
 from app.services.user_service import UserService
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=True)
+
+# Optional auth — does not raise if no token present
+oauth2_scheme_without_error = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login", auto_error=False
+)
 
 
 async def get_current_user(
@@ -29,6 +34,18 @@ async def get_current_user(
             raise credentials_exception
     except ValueError:
         raise credentials_exception
+
+    from app.core.redis import is_token_blacklisted
+
+    # Check if token has a JTI and if it's blacklisted
+    jti = payload.get("jti")
+    if jti:
+        try:
+            blacklisted = await is_token_blacklisted(jti)
+            if blacklisted:
+                raise credentials_exception
+        except Exception:
+            pass  # If Redis is down, allow through (degraded mode)
 
     svc = UserService(db)
     user = await svc.get_by_id(user_id)

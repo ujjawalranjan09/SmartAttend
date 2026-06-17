@@ -3,17 +3,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 from typing import Optional
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.redis import validate_qr_token, rate_limit_check
-from app.models.attendance import AttendanceRecord
+from app.models.attendance import AttendanceRecord, AttendanceMethod
 from app.models.user import User
 from app.models.session import ClassSession
-from app.models.course import Course
+from app.models.course import Course, Enrollment
 from app.schemas.attendance import MarkAttendanceRequest, AttendanceResponse, SessionAttendanceList
 from app.services.attendance_service import AttendanceService
 from app.services.proxy_service import ProxyDetectionService
+from app.websocket.handlers import broadcast_to_session
 
 router = APIRouter()
 
@@ -70,7 +72,54 @@ async def mark_attendance(
     # Async proxy detection (fire and forget via Celery)
     await proxy_svc.enqueue_analysis(record.id)
 
+    # Broadcast to all WebSocket listeners (display screen + faculty live view)
+    await _broadcast_attendance_update(db, str(body.session_id), record, current_user)
+
     return AttendanceResponse.model_validate(record)
+
+
+async def _broadcast_attendance_update(
+    db: AsyncSession, session_id: str, record: AttendanceRecord, student: User
+):
+    """Broadcast attendance event to all WebSocket listeners for this session."""
+    from sqlalchemy import func, select
+
+    # Get present count for this session
+    present_result = await db.execute(
+        select(func.count(AttendanceRecord.id)).where(
+            AttendanceRecord.session_id == session_id,
+            AttendanceRecord.status == "present",
+        )
+    )
+    present_count = present_result.scalar() or 0
+
+    # Total enrolled comes from the Enrollment table (NOT attendance records)
+    # — otherwise present_percentage is misleading (1 student marks -> 100%).
+    course_result = await db.execute(
+        select(ClassSession.course_id).where(ClassSession.id == session_id)
+    )
+    course_id = course_result.scalar_one_or_none()
+    if course_id:
+        enrolled_result = await db.execute(
+            select(func.count(Enrollment.id)).where(Enrollment.course_id == course_id)
+        )
+        total_enrolled = enrolled_result.scalar() or 0
+    else:
+        total_enrolled = 0
+
+    broadcast_payload = {
+        "event": "attendance_marked",
+        "session_id": session_id,
+        "student_name": student.full_name,
+        "roll_number": student.roll_number or "N/A",
+        "marked_at": record.marked_at.isoformat() if record.marked_at else datetime.utcnow().isoformat(),
+        "status": record.status.value if hasattr(record.status, "value") else str(record.status),
+        "method": record.method.value if hasattr(record.method, "value") else str(record.method),
+        "present_count": present_count,
+        "total_enrolled": total_enrolled,
+        "present_percentage": round((present_count / total_enrolled * 100), 1) if total_enrolled > 0 else 0.0,
+    }
+    await broadcast_to_session(session_id, broadcast_payload)
 
 
 @router.get("/session/{session_id}", response_model=SessionAttendanceList)

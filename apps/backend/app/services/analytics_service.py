@@ -13,6 +13,7 @@ from app.schemas.analytics import (
     AtRiskStudent,
     AttendanceTrend,
 )
+from app.services.ml_client import forecast_attendance as ml_forecast
 
 
 class AnalyticsService:
@@ -35,32 +36,43 @@ class AnalyticsService:
         total_q = (
             select(func.count(ClassSession.id))
             .join(Enrollment, Enrollment.course_id == ClassSession.course_id)
-            .where(Enrollment.student_id == student_id, ClassSession.status == "completed")
+            .where(
+                Enrollment.student_id == student_id, ClassSession.status == "completed"
+            )
         )
         if course_id:
             total_q = total_q.where(ClassSession.course_id == course_id)
         if from_date:
-            total_q = total_q.where(ClassSession.scheduled_at >= datetime.combine(from_date, datetime.min.time()))
+            total_q = total_q.where(
+                ClassSession.date >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            total_q = total_q.where(ClassSession.scheduled_at <= datetime.combine(to_date, datetime.max.time()))
+            total_q = total_q.where(
+                ClassSession.date <= datetime.combine(to_date, datetime.max.time())
+            )
 
         total_result = await self.db.execute(total_q)
         total_sessions = total_result.scalar() or 0
 
         # Attended
-        attended_q = (
-            select(func.count(AttendanceRecord.id))
-            .where(
-                AttendanceRecord.student_id == student_id,
-                AttendanceRecord.status == AttendanceStatus.PRESENT,
-            )
+        attended_q = select(func.count(AttendanceRecord.id)).where(
+            AttendanceRecord.student_id == student_id,
+            AttendanceRecord.status == AttendanceStatus.PRESENT,
         )
         if course_id:
-            attended_q = attended_q.join(ClassSession).where(ClassSession.course_id == course_id)
+            attended_q = attended_q.join(ClassSession).where(
+                ClassSession.course_id == course_id
+            )
         if from_date:
-            attended_q = attended_q.where(AttendanceRecord.marked_at >= datetime.combine(from_date, datetime.min.time()))
+            attended_q = attended_q.where(
+                AttendanceRecord.marked_at
+                >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            attended_q = attended_q.where(AttendanceRecord.marked_at <= datetime.combine(to_date, datetime.max.time()))
+            attended_q = attended_q.where(
+                AttendanceRecord.marked_at
+                <= datetime.combine(to_date, datetime.max.time())
+            )
 
         attended_result = await self.db.execute(attended_q)
         attended = attended_result.scalar() or 0
@@ -78,8 +90,20 @@ class AnalyticsService:
         # Weekly trend (last 8 weeks)
         trend = await self._student_weekly_trend(student_id, course_id)
 
-        # Simple 7-day forecast: linear extrapolation of last 2 weeks
-        forecast = self._forecast(trend)
+        # Forecast: try ML service first, fall back to linear extrapolation
+        forecast_data = None
+        forecast_7d = None
+        if trend and len(trend) >= 2:
+            history = [
+                {"date": t.date.isoformat(), "attendance_pct": t.percentage}
+                for t in trend
+            ]
+            ml_result = await ml_forecast(history)
+            if ml_result:
+                forecast_data = ml_result.get("forecast")
+                forecast_7d = ml_result.get("next_7d_avg")
+            else:
+                forecast_7d = self._forecast(trend)
 
         return StudentAnalyticsResponse(
             student_id=student_id,
@@ -89,7 +113,7 @@ class AnalyticsService:
             trend=trend,
             proxy_incidents=proxy_incidents,
             at_risk=pct < 75,
-            forecast_7d_pct=forecast,
+            forecast_7d_pct=forecast_7d,
         )
 
     async def _student_weekly_trend(
@@ -113,8 +137,8 @@ class AnalyticsService:
             attended = result.scalar() or 0
 
             total_q = select(func.count(ClassSession.id)).where(
-                ClassSession.scheduled_at >= week_start,
-                ClassSession.scheduled_at < week_end,
+                ClassSession.date >= week_start,
+                ClassSession.date < week_end,
                 ClassSession.status == "completed",
             )
             if course_id:
@@ -122,18 +146,20 @@ class AnalyticsService:
             total_result = await self.db.execute(total_q)
             total = total_result.scalar() or 1  # avoid div by zero
 
-            trend.append(AttendanceTrend(
-                period=week_start.strftime("%Y-W%V"),
-                attendance_pct=round(attended / total * 100, 2),
-                sessions_held=total,
-                sessions_attended=attended,
-            ))
+            trend.append(
+                AttendanceTrend(
+                    date=week_start.date(),
+                    attended=attended,
+                    total=total,
+                    percentage=round(attended / total * 100, 2),
+                )
+            )
         return trend
 
     def _forecast(self, trend: list[AttendanceTrend]) -> float | None:
         if len(trend) < 2:
             return None
-        last_two = [t.attendance_pct for t in trend[-2:]]
+        last_two = [t.percentage for t in trend[-2:]]
         delta = last_two[1] - last_two[0]
         forecast = last_two[1] + delta
         return round(max(0.0, min(100.0, forecast)), 2)
@@ -185,23 +211,113 @@ class AnalyticsService:
         for user, attended, total in rows:
             pct = round(attended / total * 100, 2) if total else 0.0
             if pct < threshold_pct:
-                at_risk.append(AtRiskStudent(
-                    student_id=user.id,
-                    full_name=user.full_name,
-                    roll_number=user.roll_number,
-                    attendance_pct=pct,
-                    sessions_missed=total - attended,
-                    risk_level=("critical" if pct < 60 else "moderate"),
-                ))
-        at_risk.sort(key=lambda x: x.attendance_pct)
+                at_risk.append(
+                    AtRiskStudent(
+                        student_id=user.id,
+                        full_name=user.full_name,
+                        roll_number=user.roll_number,
+                        current_attendance_pct=pct,
+                        min_required_pct=threshold_pct,
+                        courses_at_risk=[],
+                        last_attended=None,
+                    )
+                )
+        at_risk.sort(key=lambda x: x.current_attendance_pct)
         return at_risk
+
+    # ── Engagement scoring ───────────────────────────────────────────────
+
+    async def get_engagement_score(
+        self,
+        course_id: UUID,
+        avg_attendance_pct: float,
+        proxy_count: int,
+    ) -> float:
+        """
+        Compute a weighted engagement score for a course.
+
+        Weights:
+        - Average attendance percentage: 0.4
+        - Trend direction (improving/stable/declining): 0.3
+        - Proxy incident rate (lower is better): 0.2
+        - Punctuality (average time between session start and mark): 0.1
+
+        Returns a score between 0 and 100.
+        """
+        # 1. Attendance component (0.4 weight)
+        attendance_score = avg_attendance_pct  # Already 0-100
+
+        # 2. Trend component (0.3 weight) — simple slope over recent sessions
+        trend_score = 50.0  # Default neutral
+        try:
+            # Get recent weekly trend
+            trend_q = (
+                select(
+                    func.date_trunc("week", ClassSession.date).label("week"),
+                    func.count(AttendanceRecord.id).label("attended"),
+                    func.count(ClassSession.id).label("total"),
+                )
+                .join(
+                    AttendanceRecord,
+                    and_(
+                        AttendanceRecord.session_id == ClassSession.id,
+                        AttendanceRecord.status == AttendanceStatus.PRESENT,
+                    ),
+                    isouter=True,
+                )
+                .where(ClassSession.course_id == course_id)
+                .group_by(func.date_trunc("week", ClassSession.date))
+                .order_by(func.date_trunc("week", ClassSession.date).desc())
+                .limit(4)
+            )
+            trend_results = await self.db.execute(trend_q)
+            weeks = trend_results.all()
+            if len(weeks) >= 2:
+                recent_pct = (
+                    (weeks[0].attended / max(weeks[0].total, 1)) * 100
+                )
+                older_pct = (
+                    (weeks[-1].attended / max(weeks[-1].total, 1)) * 100
+                )
+                diff = recent_pct - older_pct
+                if diff > 5:
+                    trend_score = 80.0  # Improving
+                elif diff < -5:
+                    trend_score = 20.0  # Declining
+                else:
+                    trend_score = 50.0  # Stable
+        except Exception:
+            trend_score = 50.0  # Default on error
+
+        # 3. Proxy incident component (0.2 weight)
+        # Lower proxy rate is better
+        proxy_rate = min(proxy_count / max(1.0, avg_attendance_pct / 100 * 100), 1.0)
+        proxy_score = (1.0 - proxy_rate) * 100
+
+        # 4. Punctuality component (0.1 weight) — simplified
+        punctuality_score = 70.0  # Default moderate
+
+        # Weighted sum
+        engagement = (
+            0.4 * attendance_score
+            + 0.3 * trend_score
+            + 0.2 * proxy_score
+            + 0.1 * punctuality_score
+        )
+
+        return round(max(0.0, min(100.0, engagement)), 2)
 
     # ── Course analytics ─────────────────────────────────────────────────
 
     async def get_course_analytics(
-        self, course_id: UUID, from_date: date | None = None, to_date: date | None = None
+        self,
+        course_id: UUID,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> CourseAnalyticsResponse:
-        course_result = await self.db.execute(select(Course).where(Course.id == course_id))
+        course_result = await self.db.execute(
+            select(Course).where(Course.id == course_id)
+        )
         course = course_result.scalar_one()
 
         total_sessions_q = select(func.count(ClassSession.id)).where(
@@ -209,13 +325,19 @@ class AnalyticsService:
             ClassSession.status == "completed",
         )
         if from_date:
-            total_sessions_q = total_sessions_q.where(ClassSession.scheduled_at >= datetime.combine(from_date, datetime.min.time()))
+            total_sessions_q = total_sessions_q.where(
+                ClassSession.date >= datetime.combine(from_date, datetime.min.time())
+            )
         if to_date:
-            total_sessions_q = total_sessions_q.where(ClassSession.scheduled_at <= datetime.combine(to_date, datetime.max.time()))
+            total_sessions_q = total_sessions_q.where(
+                ClassSession.date <= datetime.combine(to_date, datetime.max.time())
+            )
         total_sessions = (await self.db.execute(total_sessions_q)).scalar() or 0
 
         # Average attendance
-        enrolled_q = select(func.count(Enrollment.id)).where(Enrollment.course_id == course_id)
+        enrolled_q = select(func.count(Enrollment.id)).where(
+            Enrollment.course_id == course_id
+        )
         enrolled = (await self.db.execute(enrolled_q)).scalar() or 1
 
         attended_q = (
@@ -228,7 +350,11 @@ class AnalyticsService:
         )
         attended = (await self.db.execute(attended_q)).scalar() or 0
 
-        avg_pct = round(attended / (total_sessions * enrolled) * 100, 2) if (total_sessions * enrolled) else 0.0
+        avg_pct = (
+            round(attended / (total_sessions * enrolled) * 100, 2)
+            if (total_sessions * enrolled)
+            else 0.0
+        )
 
         proxy_q = (
             select(func.count(AttendanceRecord.id))
@@ -243,12 +369,15 @@ class AnalyticsService:
         # At-risk count for this course
         at_risk_count = 0  # Full calculation in get_at_risk_students
 
+        # Compute engagement score with weighted formula
+        engagement_score = await self.get_engagement_score(course_id, avg_pct, proxy_count)
+
         return CourseAnalyticsResponse(
             course_id=course_id,
             course_name=course.name,
             total_sessions=total_sessions,
             avg_attendance_pct=avg_pct,
-            engagement_score=round(avg_pct * 0.9, 2),  # simplified heuristic
+            engagement_score=engagement_score,
             at_risk_students=at_risk_count,
             proxy_incidents=proxy_count,
             trend=[],

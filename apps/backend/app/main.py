@@ -2,21 +2,47 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.config import settings
 from app.core.errors import AppError, app_error_handler, general_error_handler
 from app.core.logging import RequestIDMiddleware, setup_logging
 from app.core.audit import setup_audit_listeners
-from app.api.v1 import auth, attendance, sessions, students, faculty, analytics, reports, notifications
+from app.core.middleware import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    RequestBodySizeMiddleware,
+)
+from app.core.profiling import ProfilingMiddleware
+from app.api.v1 import (
+    alerts,
+    auth,
+    attendance,
+    departments,
+    sessions,
+    students,
+    faculty,
+    analytics,
+    reports,
+    notifications,
+    institutions,
+    courses,
+    timetable,
+    push,
+    faces,
+    admin as admin_api,
+    student_profile,
+    daily_plan,
+    display,
+)
 from app.websocket.handlers import router as ws_router
-
-setup_logging()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    setup_logging()
     if settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
     setup_audit_listeners()
@@ -39,7 +65,9 @@ app.add_exception_handler(Exception, general_error_handler)
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.app_env == "development" else ["https://app.smartattend.in"],
+    allow_origins=["*"]
+    if settings.app_env == "development"
+    else ["https://app.smartattend.in"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +75,21 @@ app.add_middleware(
 
 # Request ID tracking
 app.add_middleware(RequestIDMiddleware)
+
+# Security headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Request body size limits
+app.add_middleware(RequestBodySizeMiddleware)
+
+# Rate limiting
+app.add_middleware(RateLimitMiddleware)
+
+# GZip compression for responses > 1KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Profiling (development only)
+app.add_middleware(ProfilingMiddleware)
 
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
@@ -59,7 +102,26 @@ app.include_router(students.router, prefix="/api/v1/students", tags=["Students"]
 app.include_router(faculty.router, prefix="/api/v1/faculty", tags=["Faculty"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
-app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
+app.include_router(
+    notifications.router, prefix="/api/v1/notifications", tags=["Notifications"]
+)
+app.include_router(
+    institutions.router, prefix="/api/v1/institutions", tags=["Institutions"]
+)
+app.include_router(courses.router, prefix="/api/v1/courses", tags=["Courses"])
+app.include_router(
+    departments.router, prefix="/api/v1/departments", tags=["Departments"]
+)
+app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
+app.include_router(timetable.router, prefix="/api/v1/timetable", tags=["Timetable"])
+app.include_router(push.router, prefix="/api/v1/push", tags=["Push Notifications"])
+app.include_router(faces.router, prefix="/api/v1/faces", tags=["Face Enrollment"])
+app.include_router(admin_api.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(
+    student_profile.router, prefix="/api/v1/students", tags=["Student Profile"]
+)
+app.include_router(daily_plan.router, prefix="/api/v1/students", tags=["Daily Plan"])
+app.include_router(display.router, prefix="/api/v1", tags=["Display"])
 
 # WebSocket
 app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
@@ -72,6 +134,7 @@ async def health_check():
     try:
         import sqlalchemy as sa
         from app.core.database import async_engine
+
         async with async_engine.connect() as conn:
             await conn.execute(sa.text("SELECT 1"))
         checks["database"] = "ok"
@@ -80,14 +143,23 @@ async def health_check():
         checks["status"] = "degraded"
     # Redis check
     try:
-        import redis.asyncio as aioredis
-        r = aioredis.from_url(settings.redis_url)
+        from app.core.redis import get_redis
+
+        r = await get_redis()
         await r.ping()
-        await r.aclose()
         checks["redis"] = "ok"
     except Exception:
         checks["redis"] = "error"
         checks["status"] = "degraded"
+    # ML service check
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=3) as client:
+            resp = await client.get(f"{settings.ml_service_url}/health")
+            checks["ml_service"] = "ok" if resp.status_code == 200 else "error"
+    except Exception:
+        checks["ml_service"] = "unavailable"
     status_code = 200 if checks["status"] == "ok" else 503
     from fastapi.responses import JSONResponse
+
     return JSONResponse(content=checks, status_code=status_code)

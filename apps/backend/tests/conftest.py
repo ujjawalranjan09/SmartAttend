@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock, AsyncMock
 
 import pytest
 import pytest_asyncio
@@ -29,23 +30,24 @@ async def test_engine():
     tables = get_tables()
     async with engine.begin() as conn:
         await conn.run_sync(
-            lambda sync_conn: Base.metadata.create_all(
-                sync_conn, tables=tables
-            )
+            lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables)
         )
     yield engine
     tables = get_tables()
     async with engine.begin() as conn:
         await conn.run_sync(
-            lambda sync_conn: Base.metadata.drop_all(
-                sync_conn, tables=tables
-            )
+            lambda sync_conn: Base.metadata.drop_all(sync_conn, tables=tables)
         )
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
 async def db_session(test_engine):
+    """Single shared session used by both fixtures AND the test client.
+
+    Uses begin_nested() (savepoint) so each test's data is rolled back
+    after the test completes, keeping tests isolated.
+    """
     session_factory = async_sessionmaker(
         bind=test_engine, class_=AsyncSession, expire_on_commit=False
     )
@@ -57,16 +59,13 @@ async def db_session(test_engine):
 
 @pytest_asyncio.fixture
 async def client(test_engine, db_session):
-    session_factory = async_sessionmaker(
-        bind=test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    """Test client that uses the SAME session as fixtures.
+
+    This ensures test_admin / test_student data is visible to API endpoints.
+    """
 
     async def override_get_db():
-        async with session_factory() as session:
-            try:
-                yield session
-            finally:
-                await session.close()
+        yield db_session
 
     from app.main import app
 
@@ -85,7 +84,7 @@ async def test_institution(db_session):
     inst = Institution(
         id=uuid.uuid4(),
         name="Test University",
-        short_name="TU",
+        short_name=f"TU-{uuid.uuid4().hex[:8]}",
         city="Testville",
         state="Testland",
         country="Testia",
@@ -93,8 +92,7 @@ async def test_institution(db_session):
         created_at=datetime.now(timezone.utc),
     )
     db_session.add(inst)
-    await db_session.commit()
-    await db_session.refresh(inst)
+    await db_session.flush()
     return inst
 
 
@@ -102,17 +100,17 @@ async def test_institution(db_session):
 async def test_admin(db_session, test_institution):
     admin = User(
         id=uuid.uuid4(),
-        email="admin@test.com",
+        email=f"admin-{uuid.uuid4().hex[:8]}@test.com",
         full_name="Test Admin",
         hashed_password=hash_password("Admin@1234"),
         role=UserRole.ADMIN,
         institution_id=test_institution.id,
         is_active=True,
+        is_verified=True,
         created_at=datetime.now(timezone.utc),
     )
     db_session.add(admin)
-    await db_session.commit()
-    await db_session.refresh(admin)
+    await db_session.flush()
     return admin
 
 
@@ -120,18 +118,18 @@ async def test_admin(db_session, test_institution):
 async def test_faculty(db_session, test_institution):
     faculty = User(
         id=uuid.uuid4(),
-        email="faculty@test.com",
+        email=f"faculty-{uuid.uuid4().hex[:8]}@test.com",
         full_name="Test Faculty",
         hashed_password=hash_password("Faculty@1234"),
         role=UserRole.FACULTY,
         institution_id=test_institution.id,
         employee_id="EMP001",
         is_active=True,
+        is_verified=True,
         created_at=datetime.now(timezone.utc),
     )
     db_session.add(faculty)
-    await db_session.commit()
-    await db_session.refresh(faculty)
+    await db_session.flush()
     return faculty
 
 
@@ -139,18 +137,18 @@ async def test_faculty(db_session, test_institution):
 async def test_student(db_session, test_institution):
     student = User(
         id=uuid.uuid4(),
-        email="student@test.com",
+        email=f"student-{uuid.uuid4().hex[:8]}@test.com",
         full_name="Test Student",
         hashed_password=hash_password("Student@1234"),
         role=UserRole.STUDENT,
         institution_id=test_institution.id,
-        roll_number="STU001",
+        roll_number=f"STU-{uuid.uuid4().hex[:8]}",
         is_active=True,
+        is_verified=True,
         created_at=datetime.now(timezone.utc),
     )
     db_session.add(student)
-    await db_session.commit()
-    await db_session.refresh(student)
+    await db_session.flush()
     return student
 
 

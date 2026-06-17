@@ -1,0 +1,44 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+celerybeat-schedule
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Docker volumes
+.docker/
+
+# Coverage / test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Herold
+.hermes/

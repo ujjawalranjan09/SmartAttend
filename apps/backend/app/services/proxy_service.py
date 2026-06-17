@@ -4,8 +4,11 @@ from sqlalchemy import select
 import numpy as np
 
 from app.models.attendance import AttendanceRecord, AttendanceStatus
+from app.models.session import ClassSession
+from app.models.user import User
 from app.models.alert import Alert, AlertType, AlertSeverity
 from app.core.config import settings
+from app.services.ml_client import score_anomaly
 
 
 class ProxyDetectionService:
@@ -17,6 +20,7 @@ class ProxyDetectionService:
     async def enqueue_analysis(self, record_id: UUID):
         """Fire-and-forget: send to Celery ML queue."""
         from app.tasks.proxy_analysis import analyze_attendance_record
+
         analyze_attendance_record.apply_async(
             args=[str(record_id)],
             queue="ml",
@@ -43,30 +47,52 @@ class ProxyDetectionService:
                 session_id=record.session_id,
                 score=score,
             )
+            session_result = await self.db.execute(
+                select(ClassSession.faculty_id).where(
+                    ClassSession.id == record.session_id
+                )
+            )
+            faculty_id = session_result.scalar_one()
+            student_result = await self.db.execute(
+                select(User.full_name).where(User.id == record.student_id)
+            )
+            student_name = student_result.scalar_one()
+            from app.tasks.notifications import send_proxy_alert
+
+            send_proxy_alert.delay(
+                str(faculty_id), student_name, str(record.session_id), score
+            )
 
         record.is_verified = True
         await self.db.commit()
 
-    def _extract_features(self, record: AttendanceRecord) -> np.ndarray:
-        """Build feature vector for Isolation Forest."""
+    def _extract_features(self, record: AttendanceRecord) -> list[float]:
+        """Build feature vector for Isolation Forest ML service."""
         features = [
             record.geo_accuracy_m or 0,
             1 if record.wifi_bssid else 0,
             1 if record.ble_beacon_id else 0,
             record.face_confidence or 0,
             1 if record.device_fingerprint else 0,
+            0.0,  # time_deviation_seconds (placeholder)
+            0.0,  # historical_avg_time (placeholder)
         ]
-        return np.array(features).reshape(1, -1)
+        return features
 
-    async def _compute_anomaly_score(self, student_id: UUID, features: np.ndarray) -> float:
+    async def _compute_anomaly_score(
+        self, student_id: UUID, features: list[float]
+    ) -> float:
         """
-        In production: load per-institution Isolation Forest model from ML service.
-        Here: simplified heuristic returning a score between 0 and 1.
+        Call ML service for anomaly scoring.
+        Falls back to heuristic if ML service is unreachable.
         """
-        # Placeholder: replace with actual ML service call
-        # score = await ml_client.predict_proxy(student_id, features)
+        ml_score = await score_anomaly(features)
+        if ml_score is not None:
+            return ml_score
+
+        # Fallback heuristic
         score = 0.1  # default low risk
-        if features[0][3] < 0.5 and features[0][0] == 0:  # low face + no GPS
+        if features[3] < 0.5 and features[0] == 0:  # low face + no GPS
             score = 0.85
         return score
 

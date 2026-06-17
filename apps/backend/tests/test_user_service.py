@@ -57,10 +57,6 @@ async def test_get_by_email_not_found(user_svc):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    reason="get_by_id uses str(uuid) with PostgreSQL UUID type on SQLite; "
-    "value.hex attribute missing on str"
-)
 async def test_get_by_id(user_svc):
     data = _make_user_data(email="byid@test.com", full_name="By ID User")
     created = await user_svc.create(data)
@@ -70,9 +66,6 @@ async def test_get_by_id(user_svc):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    reason="update calls get_by_id which uses str(uuid) with PostgreSQL UUID type on SQLite"
-)
 async def test_update_user(user_svc):
     data = _make_user_data(email="update@test.com", full_name="Original Name")
     created = await user_svc.create(data)
@@ -84,10 +77,6 @@ async def test_update_user(user_svc):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    reason="deactivate uses str(uuid) with PostgreSQL UUID type on SQLite; "
-    "value.hex attribute missing on str"
-)
 async def test_deactivate_user(user_svc):
     data = _make_user_data(email="deact@test.com", full_name="Deactivate User")
     created = await user_svc.create(data)

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#171614" />
+  <meta name="description" content="SmartAttend — AI-powered smart attendance system for universities" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <title>SmartAttend</title>
+
+  <!-- Fonts -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- QRCode -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Gate -->
+    <div id="auth-screen" class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-label="SmartAttend Logo">
+            <rect width="40" height="40" rx="10" fill="#4f98a3"/>
+            <path d="M10 20 L20 10 L30 20 L20 30 Z" stroke="white" stroke-width="2" fill="none"/>
+            <circle cx="20" cy="20" r="4" fill="white"/>
+            <path d="M20 10 L20 16 M20 24 L20 30 M10 20 L16 20 M24 20 L30 20" stroke="white" stroke-width="1.5"/>
+          </svg>
+          <span class="auth-logo-text">SmartAttend</span>
+        </div>
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Sign in to your account</p>
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" placeholder="you@smartattend.in" required autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-with-icon">
+              <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+              <button type="button" class="icon-btn" id="toggle-password" aria-label="Toggle password">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="auth-meta">
+            <label class="checkbox-label"><input type="checkbox" id="remember" /> Remember me</label>
+            <a href="#forgot-password" class="link">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+            <span>Sign in</span>
+          </button>
+          <div id="auth-error" class="auth-error hidden"></div>
+        </form>
+        <div class="auth-demo">
+          <p class="text-muted">Demo accounts</p>
+          <div class="demo-accounts">
+                      <button type="button" class="demo-btn" data-email="admin@smartattend.in" data-pass="Admin@1234" data-role="admin">Admin</button>
+                      <button type="button" class="demo-btn" data-email="faculty@smartattend.in" data-pass="Faculty@1234" data-role="faculty">Faculty</button>
+                      <button type="button" class="demo-btn" data-email="student1@smartattend.in" data-pass="Student@1234" data-role="student">Student</button>
+                    </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Shell -->
+    <div id="app-shell" class="app-shell hidden">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="#4f98a3"/>
+              <path d="M10 20 L20 10 L30 20 L20 30 Z" stroke="white" stroke-width="2" fill="none"/>
+              <circle cx="20" cy="20" r="4" fill="white"/>
+            </svg>
+            <span class="sidebar-logo-text">SmartAttend</span>
+          </div>
+          <button class="sidebar-collapse-btn icon-btn" id="sidebar-toggle" aria-label="Toggle sidebar">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebar-nav">
+          <!-- Dynamic nav items injected by JS based on role -->
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-mini" id="user-mini">
+            <div class="avatar" id="nav-avatar">A</div>
+            <div class="user-mini-info">
+              <span class="user-mini-name" id="nav-username">Loading...</span>
+              <span class="user-mini-role badge" id="nav-role">-</span>
+            </div>
+          </div>
+          <button class="icon-btn" id="logout-btn" aria-label="Sign out">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-wrapper">
+        <!-- Top bar -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-btn mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu">
+              <i data-lucide="menu"></i>
+            </button>
+            <div class="breadcrumb" id="breadcrumb">Dashboard</div>
+          </div>
+          <div class="topbar-right">
+            <div class="offline-badge hidden" id="offline-badge">
+              <i data-lucide="wifi-off"></i> Offline
+            </div>
+            <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+              <i data-lucide="bell"></i>
+              <span class="notif-dot hidden" id="notif-dot"></span>
+            </button>
+            <button class="icon-btn" data-theme-toggle aria-label="Toggle theme">
+              <i data-lucide="moon"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- Page Views -->
+        <main class="main-content" id="main-content">
+          <!-- Views injected here -->
+        </main>
+      </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div class="notif-panel hidden" id="notif-panel">
+      <div class="notif-panel-header">
+        <h3>Notifications</h3>
+        <button class="icon-btn" id="close-notif"><i data-lucide="x"></i></button>
+      </div>
+      <div class="notif-list" id="notif-list"></div>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal-overlay hidden" id="qr-modal-overlay">
+      <div class="modal" id="qr-modal">
+        <div class="modal-header">
+          <h2>Session QR Code</h2>
+          <button class="icon-btn" id="close-qr"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+          <canvas id="qr-canvas" width="240" height="240"></canvas>
+          <p class="qr-label" id="qr-session-name">Loading...</p>
+          <div class="qr-meta">
+            <span class="badge badge-success" id="qr-status">Active</span>
+            <span class="text-muted" id="qr-expiry"></span>
+          </div>
+          <p class="text-muted text-sm">QR refreshes every 30 seconds to prevent sharing</p>
+          <div class="qr-actions">
+            <button class="btn btn-primary" id="share-qr-btn"><i data-lucide="share-2"></i> Share</button>
+            <button class="btn btn-ghost" id="close-qr-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script src="./src/app.js" type="module"></script>
+</body>
+</html>

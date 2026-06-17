@@ -1,3 +1,4 @@
+import uuid
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
@@ -35,7 +36,9 @@ class NotificationService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Notification], int, int]:
-        base = select(Notification).where(Notification.user_id == str(user_id))
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
+        base = select(Notification).where(Notification.user_id == user_id)
 
         count_result = await self.db.execute(
             select(func.count()).select_from(base.subquery())
@@ -57,11 +60,15 @@ class NotificationService:
         return items, total, unread_count
 
     async def mark_read(self, notification_id: UUID | str, user_id: UUID | str) -> bool:
+        if isinstance(notification_id, str):
+            notification_id = uuid.UUID(notification_id)
+        if isinstance(user_id, str):
+            user_id = uuid.UUID(user_id)
         result = await self.db.execute(
             update(Notification)
             .where(
-                Notification.id == str(notification_id),
-                Notification.user_id == str(user_id),
+                Notification.id == notification_id,
+                Notification.user_id == user_id,
             )
             .values(is_read=True)
         )
