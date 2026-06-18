@@ -16,10 +16,6 @@ services:
       url: postgres:16-alpine
     region: ohio  # change to your nearest region
     plan: free
-    ipAllowList: []  # allow all (tighten for production)
-    disk:
-      name: pgdata
-      mountPath: /var/lib/postgresql/data
 
   # ── Redis ────────────────────────────────────────────────────────────
   - type: redis
