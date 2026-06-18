@@ -83,12 +83,28 @@ async def _ensure_demo_users():
             print("Seed: demo users already exist — skipping.", flush=True)
             return
 
-        # Get first institution/department for foreign keys
+        # Ensure an institution and department exist for foreign keys
         inst_id = await conn.scalar(sa.text("SELECT id FROM institutions LIMIT 1"))
-        dept_id = await conn.scalar(sa.text("SELECT id FROM departments LIMIT 1"))
         if not inst_id:
-            print("Seed: no institution found — run full seed script first.", flush=True)
-            return
+            await conn.execute(
+                sa.text(
+                    "INSERT INTO institutions (id, name, short_name, city, state, is_active, created_at) "
+                    "VALUES (gen_random_uuid(), 'Rajasthan Technical University', 'RTU', 'Kota', "
+                    "'Rajasthan', true, now())"
+                )
+            )
+            inst_id = await conn.scalar(sa.text("SELECT id FROM institutions LIMIT 1"))
+
+        dept_id = await conn.scalar(sa.text("SELECT id FROM departments LIMIT 1"))
+        if not dept_id:
+            await conn.execute(
+                sa.text(
+                    "INSERT INTO departments (id, name, code, institution_id, created_at) "
+                    "VALUES (gen_random_uuid(), 'Information Technology', 'IT', :inst, now())"
+                ),
+                {"inst": inst_id},
+            )
+            dept_id = await conn.scalar(sa.text("SELECT id FROM departments LIMIT 1"))
 
         for email, name, hashed_pw, role in to_create:
             await conn.execute(
