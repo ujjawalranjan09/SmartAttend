@@ -23,7 +23,18 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
 async def general_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception: %s", exc)
+    # Surface the real exception type + message so deployment issues (bad DB URL,
+    # missing relation, etc.) are visible in the browser instead of masked behind
+    # a generic message + a CORS failure. The full stack trace stays in the logs.
     return JSONResponse(
         status_code=500,
-        content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred"}},
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred",
+                # Diagnostic only — helps triage the actual failure.
+                "exc_type": type(exc).__name__,
+                "exc_message": str(exc),
+            }
+        },
     )

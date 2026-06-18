@@ -69,8 +69,15 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
   const data = ct.includes("application/json") ? await res.json().catch(() => null) : await res.text().catch(() => null);
 
   if (!res.ok) {
-    const detail = (data && typeof data === "object" && "detail" in (data as any)) ? (data as any).detail : data;
-    const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(", ") : res.statusText;
+    // FastAPI HTTPException -> { detail }; our AppError/500 handler -> { error: { message, exc_message } }
+    const obj = (data && typeof data === "object") ? (data as any) : null;
+    const errObj = obj?.error;
+    const detail = obj?.detail ?? (errObj && (errObj.exc_message || errObj.message)) ?? data;
+    const msg = typeof detail === "string"
+      ? detail
+      : Array.isArray(detail)
+        ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(", ")
+        : (errObj && errObj.exc_type ? `${errObj.exc_type}: ${errObj.exc_message}` : res.statusText);
     throw new ApiError(msg || `Request failed: ${res.status}`, res.status, detail);
   }
   return data as T;
