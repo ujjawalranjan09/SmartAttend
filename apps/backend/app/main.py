@@ -49,8 +49,59 @@ async def lifespan(app: FastAPI):
         except Exception as e:  # BadDsn or other config errors shouldn't crash the app
             print(f"WARNING: Sentry init failed ({e}); continuing without Sentry.", flush=True)
     setup_audit_listeners()
+    await _ensure_demo_users()
     yield
     # Shutdown — clean up connections if needed
+
+
+async def _ensure_demo_users():
+    """Create demo accounts if they don't exist. Idempotent on every boot."""
+    import sqlalchemy as sa
+    from app.core.database import async_engine
+    from app.core.security import hash_password
+
+    accounts = [
+        ("admin@smartattend.in", "System Admin", hash_password("Admin@1234"), "admin"),
+        ("faculty@smartattend.in", "Prof. Ramesh Sharma", hash_password("Faculty@1234"), "faculty"),
+    ]
+    for i in range(1, 6):
+        accounts.append(
+            (f"student{i}@smartattend.in", f"Student {i}", hash_password("Student@1234"), "student"),
+        )
+    emails = [a[0] for a in accounts]
+
+    async with async_engine.begin() as conn:
+        # Check which accounts already exist
+        result = await conn.execute(
+            sa.text("SELECT email FROM users WHERE email = ANY(:emails)"),
+            {"emails": emails},
+        )
+        existing = {row[0] for row in result}
+
+        to_create = [a for a in accounts if a[0] not in existing]
+        if not to_create:
+            print("Seed: demo users already exist — skipping.", flush=True)
+            return
+
+        # Get first institution/department for foreign keys
+        inst_id = await conn.scalar(sa.text("SELECT id FROM institutions LIMIT 1"))
+        dept_id = await conn.scalar(sa.text("SELECT id FROM departments LIMIT 1"))
+        if not inst_id:
+            print("Seed: no institution found — run full seed script first.", flush=True)
+            return
+
+        for email, name, hashed_pw, role in to_create:
+            await conn.execute(
+                sa.text(
+                    "INSERT INTO users (id, email, full_name, hashed_password, role, "
+                    "institution_id, department_id, is_active, is_verified, created_at, updated_at) "
+                    "VALUES (gen_random_uuid(), :email, :name, :pw, :role, :inst, :dept, "
+                    "true, true, now(), now()) ON CONFLICT (email) DO NOTHING"
+                ),
+                {"email": email, "name": name, "pw": hashed_pw, "role": role,
+                 "inst": inst_id, "dept": dept_id},
+            )
+        print(f"Seed: created {len(to_create)} demo user(s).", flush=True)
 
 
 app = FastAPI(
