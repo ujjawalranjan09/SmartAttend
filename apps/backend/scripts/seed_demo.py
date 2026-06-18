@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.core.config import settings
 from app.core.database import Base
+from app.core.database import to_async_url
 from app.core.security import hash_password
 from app.models.institution import Institution, Department
 from app.models.user import User, UserRole
@@ -70,7 +71,9 @@ async def _get_or_create_user(db: AsyncSession, inst_id, dept_id, spec: dict) ->
 
 
 async def seed():
-    engine = create_async_engine(settings.database_url, echo=False)
+    # Normalize the URL (postgres:// -> postgresql+asyncpg://) so the async
+    # engine gets a valid driver regardless of what DATABASE_URL looks like.
+    engine = create_async_engine(to_async_url(settings.database_url), echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

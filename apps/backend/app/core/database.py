@@ -12,10 +12,16 @@ class Base(DeclarativeBase):
 # Ensure the URL uses the async driver for create_async_engine.
 # Render (and many providers) supply "postgres://" or "postgresql://..." — we
 # need "+asyncpg". Normalize the scheme first so both forms are handled.
-_async_url = settings.database_url
-if "+asyncpg" not in _async_url:
-    _async_url = _async_url.replace("postgres://", "postgresql://", 1)
-    _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+def to_async_url(url: str) -> str:
+    """Normalize a postgres:// or postgresql:// URL to postgresql+asyncpg://."""
+    if "+asyncpg" in url:
+        return url
+    url = url.replace("postgres://", "postgresql://", 1)
+    url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
+_async_url = to_async_url(settings.database_url)
 
 # Async engine (FastAPI) — optimized pool settings for production
 async_engine = create_async_engine(
