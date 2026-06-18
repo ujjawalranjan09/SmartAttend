@@ -1,0 +1,141 @@
+# Render Blueprint — deploy the full SmartAttend stack in one click.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. Go to https://dashboard.render.com/blueprints → New Blueprint Instance.
+#   3. Select this repo. Render reads render.yaml and creates everything.
+#   4. Fill in SECRET_KEY when prompted (or leave the default for dev).
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────
+  - type: pserv
+    name: smartattend-db
+    env: docker
+    image: postgres:16-alpine
+    region: ohio  # change to your nearest region
+    plan: free
+    ipAllowList: []  # allow all (tighten for production)
+    disk:
+      name: pgdata
+      mountPath: /var/lib/postgresql/data
+
+  # ── Redis ────────────────────────────────────────────────────────────
+  - type: redis
+    name: smartattend-redis
+    region: ohio
+    plan: free
+    ipAllowList: []
+
+  # ── FastAPI Backend (Web Service) ────────────────────────────────────
+  - type: web
+    name: smartattend-api
+    env: docker
+    region: ohio
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        sync: false  # you'll be prompted to set this
+      - key: PYTHONPATH
+        value: .
+      - key: QR_TOKEN_TTL_SECONDS
+        value: "30"
+      # Async driver for FastAPI
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartattend-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      # Celery broker = Redis DB 1, results = Redis DB 2 (Render appends /0)
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: ML_SERVICE_URL
+        value: http://localhost:8001
+
+  # ── Celery Worker (Background Worker) ────────────────────────────────
+  - type: worker
+    name: smartattend-worker
+    env: docker
+    region: ohio
+    plan: free
+    dockerfilePath: ./Dockerfile.worker
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        sync: false
+      - key: PYTHONPATH
+        value: .
+      # Sync driver for Celery (psycopg2)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartattend-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+
+  # ── Celery Beat (Background Worker) ──────────────────────────────────
+  - type: worker
+    name: smartattend-beat
+    env: docker
+    region: ohio
+    plan: free
+    dockerfilePath: ./Dockerfile.beat
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        value: dev-secret-change-me
+      - key: PYTHONPATH
+        value: .
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartattend-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: smartattend-redis
+          property: connectionString

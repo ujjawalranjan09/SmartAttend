@@ -1,0 +1,18 @@
+# SmartAttend — Celery worker Dockerfile.
+# Builds from the repo root (same context as the root Dockerfile) so Render
+# Background Workers can build without pointing at apps/backend/Dockerfile.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY apps/backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY apps/backend/ .
+
+# Queues: default + ml + ml_scoring + reports + notifications
+CMD ["celery", "-A", "app.tasks.celery_app.celery_app", "worker", "--loglevel=info", "--pool=solo", "-Q", "default,ml,ml_scoring,reports,notifications"]
