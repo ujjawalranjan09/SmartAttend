@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     # App
     app_env: Literal["development", "staging", "production"] = "development"
     app_name: str = "SmartAttend"
+    frontend_url: str = ""  # e.g. https://smartattend-web.onrender.com (for CORS)
     secret_key: str = Field(
         default="dev-insecure-secret-key-change-this-in-production-please",
         description="JWT signing secret. MUST be overridden in staging/production.",

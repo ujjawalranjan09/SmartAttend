@@ -66,11 +66,19 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, general_error_handler)
 
 # CORS
+# In production, allow either a configured frontend origin (FRONTEND_URL env var),
+# the smartattend.in domain, or any *.onrender.com static site (for hosted deploys).
+_prod_origins = ["https://app.smartattend.in"]
+if getattr(settings, "frontend_url", ""):
+    _prod_origins.append(settings.frontend_url.rstrip("/"))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"]
     if settings.app_env == "development"
-    else ["https://app.smartattend.in"],
+    else _prod_origins,
+    allow_origin_regex=r"^https://[a-z0-9-]+\.onrender\.com$"
+    if settings.app_env != "development"
+    else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
