@@ -3,6 +3,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, R
 import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { analyticsApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
+import { extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -142,7 +143,7 @@ function AdminAnalytics() {
     queryFn: async () => {
       try {
         const res = await analyticsApi.atRisk({ limit: 20 });
-        return (res as any)?.items || (res as any) || [];
+        return extractList(res);
       } catch { return []; }
     },
   });

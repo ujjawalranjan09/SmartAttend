@@ -54,6 +54,22 @@ export function attendanceClass(pct: number): "success" | "warning" | "error" {
   return "error";
 }
 
+/**
+ * Safely extract an array from an API response.
+ * Handles responses shaped as: { items: [...] }, { students: [...] }, a bare array, or anything else.
+ */
+export function extractList(res: unknown): unknown[] {
+  if (Array.isArray(res)) return res;
+  if (res && typeof res === "object") {
+    const obj = res as Record<string, unknown>;
+    // Common keys used across our API responses
+    for (const key of ["items", "students", "sessions", "records", "alerts", "notifications"]) {
+      if (Array.isArray(obj[key])) return obj[key] as unknown[];
+    }
+  }
+  return [];
+}
+
 export function greeting(): { text: string; emoji: string } {
   const h = new Date().getHours();
   if (h < 12) return { text: "Good morning", emoji: "🌅" };

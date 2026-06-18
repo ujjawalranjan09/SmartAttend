@@ -4,7 +4,7 @@ import { Search, Download, UserPlus, Users, Mail, Hash, Loader2 } from "lucide-r
 import { toast } from "sonner";
 import { studentsApi, reportsApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
-import { initials, attendanceClass, formatPercent } from "@/lib/utils";
+import { initials, attendanceClass, formatPercent, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export function StudentsPage() {
     queryKey: ["students", "list"],
     queryFn: async () => {
       const r = await studentsApi.list();
-      return (r as any)?.items || (r as any) || [];
+      return extractList(r);
     },
   });
 

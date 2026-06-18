@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Target, Plus, Trash2, Clock, ChevronDown, ChevronUp, Sparkles, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { profileApi, goalsApi, dailyPlanApi } from "@/lib/api";
+import { extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -199,7 +200,7 @@ function TagInput({ label, tags, onChange, input, setInput, placeholder }: any) 
 
 function GoalsTab() {
   const qc = useQueryClient();
-  const { data: goals = [], isLoading } = useQuery({ queryKey: ["goals"], queryFn: async () => { try { const r = await goalsApi.list(); return (r as any)?.items || (r as any) || []; } catch { return []; } } });
+  const { data: goals = [], isLoading } = useQuery({ queryKey: ["goals"], queryFn: async () => { try { const r = await goalsApi.list(); return extractList(r); } catch { return []; } } });
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<"active" | "completed" | "all">("active");
   const filtered = goals.filter((g: any) => filter === "all" ? true : g.status === filter);

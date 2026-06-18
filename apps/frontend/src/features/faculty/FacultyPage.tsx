@@ -4,7 +4,7 @@ import { Search, UserPlus, Mail, Hash, Trash2, Loader2, GraduationCap, Edit } fr
 import { toast } from "sonner";
 import { facultyApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
-import { initials } from "@/lib/utils";
+import { initials, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export function FacultyPage() {
     queryKey: ["faculty", "list"],
     queryFn: async () => {
       const r = await facultyApi.list();
-      return (r as any)?.items || (r as any) || [];
+      return extractList(r);
     },
   });
 
@@ -126,7 +126,7 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
   if (isEdit && open && !loading && !fullName) {
     setLoading(true);
     facultyApi.list().then((r: any) => {
-      const list = r?.items || r || [];
+      const list = extractList(r) as any[];
       const f = list.find((x: any) => x.id === editId);
       if (f) {
         setFullName(f.full_name || "");

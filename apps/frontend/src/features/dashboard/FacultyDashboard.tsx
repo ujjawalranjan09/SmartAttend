@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Calendar, Users, AlertCircle, Play, Plus, ChevronRight, Activity, TrendingUp, BellRing } from "lucide-react";
 import { sessionsApi, alertsApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
-import { greeting, formatDateTime, attendanceClass } from "@/lib/utils";
+import { greeting, formatDateTime, attendanceClass, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { KpiCard } from "@/components/common/KpiCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +20,10 @@ export function FacultyDashboard() {
   const { data: sessions = [], isLoading: l1 } = useQuery({
     queryKey: ["sessions", "recent"],
     queryFn: async () => {
-      const res = await sessionsApi.list({ limit: 8 });
-      return (res as any)?.items || (res as any) || [];
+      try {
+        const res = await sessionsApi.list({ limit: 8 });
+        return extractList(res);
+      } catch { return []; }
     },
   });
 
@@ -30,7 +32,7 @@ export function FacultyDashboard() {
     queryFn: async () => {
       try {
         const res = await alertsApi.list({ limit: 8, is_resolved: false });
-        return (res as any)?.items || (res as any) || [];
+        return extractList(res);
       } catch { return []; }
     },
   });

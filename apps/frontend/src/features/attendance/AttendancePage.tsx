@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { ScanLine, Download, Filter, AlertTriangle } from "lucide-react";
 import { attendanceApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
-import { formatDate, attendanceClass } from "@/lib/utils";
+import { formatDate, attendanceClass, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export function AttendancePage() {
     queryKey: ["attendance", "history", user?.id],
     queryFn: async () => {
       const res = await attendanceApi.history({ limit: 100 });
-      return (res as any)?.items || (res as any) || [];
+      return extractList(res);
     },
   });
 

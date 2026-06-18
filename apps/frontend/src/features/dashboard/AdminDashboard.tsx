@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Link } from "react-router-dom";
 import { Users, GraduationCap, Percent, AlertTriangle, Activity, TrendingUp, ChevronRight, Sparkles } from "lucide-react";
 import { analyticsApi, studentsApi } from "@/lib/api";
-import { greeting, formatPercent } from "@/lib/utils";
+import { greeting, formatPercent, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { KpiCard } from "@/components/common/KpiCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ export function AdminDashboard() {
     queryFn: async () => {
       try {
         const res = await analyticsApi.atRisk({ limit: 8 });
-        return (res as any)?.items || (res as any) || [];
+        return extractList(res);
       } catch { return []; }
     },
   });
@@ -27,7 +27,7 @@ export function AdminDashboard() {
     queryFn: async () => {
       try {
         const res = await studentsApi.list({ limit: 100 });
-        return (res as any)?.items || (res as any) || [];
+        return extractList(res);
       } catch { return []; }
     },
   });

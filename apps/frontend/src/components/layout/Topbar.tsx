@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { authApi, notificationsApi, setToken } from "@/lib/api";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
-import { cn, initials } from "@/lib/utils";
+import { cn, initials, extractList } from "@/lib/utils";
 
 interface TopbarProps {
   onMobileMenu: () => void;
@@ -33,7 +33,7 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
     refetchInterval: 30_000,
     enabled: !!user,
   });
-  const items = (notifs as any)?.items || (notifs as any) || [];
+  const items = extractList(notifs);
   const unread = items.filter((n: any) => !n.is_read).length;
 
   useEffect(() => {
