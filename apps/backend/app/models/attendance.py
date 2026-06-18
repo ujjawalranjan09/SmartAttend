@@ -38,10 +38,10 @@ class AttendanceRecord(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     status: Mapped[AttendanceStatus] = mapped_column(
-        Enum(AttendanceStatus), nullable=False, default=AttendanceStatus.PRESENT
+        String(30), nullable=False, default=AttendanceStatus.PRESENT
     )
     method: Mapped[AttendanceMethod] = mapped_column(
-        Enum(AttendanceMethod), nullable=False
+        String(50), nullable=False
     )
     marked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 

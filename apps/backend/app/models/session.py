@@ -58,7 +58,7 @@ class ClassSession(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus), default=SessionStatus.SCHEDULED
+        String(30), default=SessionStatus.SCHEDULED
     )
     is_online: Mapped[bool] = mapped_column(Boolean, default=False)
     meeting_url: Mapped[str | None] = mapped_column(String(500))  # Zoom/GMeet
