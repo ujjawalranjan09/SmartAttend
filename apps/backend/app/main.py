@@ -68,21 +68,16 @@ app.add_exception_handler(Exception, general_error_handler)
 # CORS
 # In production, allow either a configured frontend origin (FRONTEND_URL env var),
 # the smartattend.in domain, or any *.onrender.com static site (for hosted deploys).
+#
+# NOTE: CORSMiddleware is added LAST so it is the OUTERMOST middleware. Starlette
+# runs middleware in reverse-add order (last added = outermost). If CORS were
+# innermost (added first), any 500 raised by an outer middleware/handler would
+# be returned WITHOUT CORS headers, so the browser would block it and mask the
+# real error behind a generic CORS failure. Adding it last ensures error
+# responses still carry Access-Control-Allow-Origin.
 _prod_origins = ["https://app.smartattend.in"]
 if getattr(settings, "frontend_url", ""):
     _prod_origins.append(settings.frontend_url.rstrip("/"))
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"]
-    if settings.app_env == "development"
-    else _prod_origins,
-    allow_origin_regex=r"^https://[a-z0-9-]+\.onrender\.com$"
-    if settings.app_env != "development"
-    else None,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Request ID tracking
 app.add_middleware(RequestIDMiddleware)
@@ -101,6 +96,19 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Profiling (development only)
 app.add_middleware(ProfilingMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"]
+    if settings.app_env == "development"
+    else _prod_origins,
+    allow_origin_regex=r"^https://[a-z0-9-]+\.onrender\.com$"
+    if settings.app_env != "development"
+    else None,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
