@@ -44,7 +44,10 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     if settings.sentry_dsn:
-        sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
+        try:
+            sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1)
+        except Exception as e:  # BadDsn or other config errors shouldn't crash the app
+            print(f"WARNING: Sentry init failed ({e}); continuing without Sentry.", flush=True)
     setup_audit_listeners()
     yield
     # Shutdown — clean up connections if needed
