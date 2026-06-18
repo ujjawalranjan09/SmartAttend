@@ -9,9 +9,15 @@ class Base(DeclarativeBase):
     pass
 
 
+# Ensure the URL uses the async driver for create_async_engine.
+# Render (and many providers) supply "postgresql://..." — we need "+asyncpg".
+_async_url = settings.database_url
+if "+asyncpg" not in _async_url:
+    _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 # Async engine (FastAPI) — optimized pool settings for production
 async_engine = create_async_engine(
-    settings.database_url,
+    _async_url,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,
     pool_timeout=30,          # Wait up to 30s for a connection
@@ -36,8 +42,8 @@ async def get_db() -> AsyncSession:
             await session.close()
 
 
-# Synchronous engine (Celery tasks)
-_sync_url = settings.database_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+# Synchronous engine (Celery tasks) — always needs psycopg2 sync driver
+_sync_url = _async_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
 sync_engine = create_engine(
     _sync_url,
     pool_size=5,

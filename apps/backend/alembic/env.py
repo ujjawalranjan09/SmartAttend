@@ -13,10 +13,15 @@ from app.core.database import Base  # noqa: F401 — triggers model registration
 import app.models  # noqa: F401 — import all models
 
 config = context.config
-config.set_main_option(
-    "sqlalchemy.url",
-    settings.database_url.replace("postgresql+asyncpg", "postgresql+psycopg2"),
-)
+
+# Build a sync URL for Alembic — ensure we end up with "postgresql+psycopg2://"
+_sync_url = settings.database_url
+if "+asyncpg" in _sync_url:
+    _sync_url = _sync_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+elif "+psycopg2" not in _sync_url and _sync_url.startswith("postgresql://"):
+    _sync_url = _sync_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+config.set_main_option("sqlalchemy.url", _sync_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
