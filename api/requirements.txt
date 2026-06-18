@@ -1,0 +1,2 @@
+# Vercel Python serverless — no extra deps needed
+# Uses only stdlib (urllib, json, http.server)

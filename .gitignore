@@ -14,7 +14,16 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Celery beat schedule (all variants)
 celerybeat-schedule
+celerybeat-schedule.*
+apps/backend/celerybeat-schedule*
+
+# ML model artifacts
+*.pkl
+*_meta.json
+apps/ml-service/models/
 
 # Node
 node_modules/
@@ -40,5 +49,19 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 
-# Herold
+# One-off dev scripts (root level)
+/capture_ui.mjs
+/check_db.py
+/seed_quick.py
+/restart_pg.ps1
+
+# Windows redirect artifacts
+nul
+
+# Agent / tooling working dirs
 .hermes/
+.mimocode/
+.zcode/
+
+# Vercel build artifacts
+.vercel/

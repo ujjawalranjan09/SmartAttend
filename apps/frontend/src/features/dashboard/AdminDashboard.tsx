@@ -60,7 +60,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total students" value={stats.total_students ?? students.length} icon={Users} variant="brand" />
         <KpiCard label="Faculty" value={stats.total_faculty ?? "—"} icon={GraduationCap} variant="info" />
         <KpiCard label="Avg attendance" value={stats.avg_attendance != null ? formatPercent(stats.avg_attendance) : "—"} icon={Percent} variant={(stats.avg_attendance ?? 0) >= 75 ? "success" : "warning"} />

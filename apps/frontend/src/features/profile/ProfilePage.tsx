@@ -102,7 +102,7 @@ function ProfileTab() {
               </div>
             </div>
           ))}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[var(--border)]">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1.5">Study style</div>
               <Badge variant="muted" className="capitalize">{profile.preferred_study_style || "Not set"}</Badge>
@@ -147,7 +147,7 @@ function ProfileForm({ initial, onSave, onCancel }: { initial: any; onSave: (d: 
           <TagInput label="Interests" tags={interests} onChange={setInterests} input={interestInput} setInput={setInterestInput} placeholder="machine learning, web dev" />
           <TagInput label="Strengths" tags={strengths} onChange={setStrengths} input={strengthInput} setInput={setStrengthInput} placeholder="mathematics, programming" />
           <TagInput label="Career goals" tags={careers} onChange={setCareers} input={careerInput} setInput={setCareerInput} placeholder="software engineer, data analyst" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Study style</Label>
               <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm">
@@ -324,7 +324,7 @@ function AddGoalDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         <CardContent className="space-y-4">
           <div className="space-y-2"><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Complete ML course on Coursera" /></div>
           <div className="space-y-2"><Label>Description</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Optional" /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Category *</Label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm">
                 <option value="">Select…</option>
@@ -337,7 +337,7 @@ function AddGoalDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Target date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
             <div className="space-y-2"><Label>Estimated hours</Label><Input type="number" min={1} value={est} onChange={(e) => setEst(e.target.value ? parseInt(e.target.value) : "")} placeholder="40" /></div>
           </div>

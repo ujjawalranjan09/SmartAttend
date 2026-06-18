@@ -98,7 +98,7 @@ export const sessionsApi = {
   start: (data: { course_id: string; faculty_id: string; is_online?: boolean; meeting_url?: string; qr_rotation_interval_sec?: number }) =>
     api<any>("/sessions/start", { method: "POST", body: data }),
   end: (id: string) => api<any>(`/sessions/${id}/end`, { method: "POST" }),
-  qr: (id: string) => api<any>(`/sessions/${id}/qr`),
+  qr: (id: string) => api<any>(`/sessions/${id}/qr`, { method: "POST" }),
 };
 
 /* ─── Attendance ─── */

@@ -149,7 +149,7 @@ export function FacultyDashboard() {
           <CardTitle>Quick actions</CardTitle>
           <CardDescription>Common faculty tasks</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {[
             { to: "/sessions", icon: Plus, label: "Start session", desc: "Begin a new class", color: "from-brand-500 to-brand-700" },
             { to: "/attendance", icon: Users, label: "Mark attendance", desc: "Manage records", color: "from-blue-500 to-indigo-600" },

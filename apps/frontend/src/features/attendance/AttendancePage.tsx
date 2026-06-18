@@ -156,20 +156,20 @@ function FacultyView({ records, loading, filters, setFilters }: { records: any[]
     <div className="space-y-4">
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               <Filter className="h-3 w-3" /> Filters
             </div>
-            <Input placeholder="Course" value={filters.course} onChange={(e) => setFilters({ ...filters, course: e.target.value })} className="max-w-[180px] h-9" />
-            <Input type="date" value={filters.date} onChange={(e) => setFilters({ ...filters, date: e.target.value })} className="max-w-[170px] h-9" />
-            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm">
+            <Input placeholder="Course" value={filters.course} onChange={(e) => setFilters({ ...filters, course: e.target.value })} className="max-w-[180px] h-9 w-full sm:w-auto" />
+            <Input type="date" value={filters.date} onChange={(e) => setFilters({ ...filters, date: e.target.value })} className="max-w-[170px] h-9 w-full sm:w-auto" />
+            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm w-full sm:w-auto">
               <option value="">All status</option>
               <option value="present">Present</option>
               <option value="absent">Absent</option>
               <option value="late">Late</option>
               <option value="proxy_suspected">Proxy suspected</option>
             </select>
-            <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto">
+            <label className="flex items-center gap-2 text-sm cursor-pointer sm:ml-auto">
               <input type="checkbox" checked={filters.flagged} onChange={(e) => setFilters({ ...filters, flagged: e.target.checked })} className="h-4 w-4 rounded border-[var(--border)]" />
               <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-red-500" /> Flagged only</span>
             </label>

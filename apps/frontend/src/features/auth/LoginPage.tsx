@@ -7,6 +7,7 @@ import { useAuth } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/common/Logo";
 
 const DEMO_ACCOUNTS = [
   { label: "Admin", email: "admin@smartattend.in", password: "Admin@1234", color: "from-purple-500 to-pink-500", emoji: "👑" },
@@ -51,14 +52,8 @@ export function LoginPage() {
       {/* Left: form */}
       <div className="flex items-center justify-center p-6 lg:p-12 bg-[var(--background)]">
         <div className="w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
-              <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
-                <path d="M10 20 L20 10 L30 20 L20 30 Z" stroke="white" strokeWidth="2" fill="none" strokeLinejoin="round"/>
-                <circle cx="20" cy="20" r="4" fill="white"/>
-              </svg>
-            </div>
-            <span className="text-xl font-bold tracking-tight">SmartAttend</span>
+          <div className="mb-10">
+            <Logo size="lg" withWordmark className="[&_span]:text-xl" />
           </div>
 
           <div className="space-y-2 mb-8">
@@ -108,7 +103,7 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm px-3 py-2 animate-[slideUp_0.2s_ease-out]">
+              <div className="rounded-md bg-[var(--error)]/10 border border-[var(--error)]/30 text-[var(--error)] text-sm px-3 py-2 animate-[slideUp_0.2s_ease-out]" role="alert">
                 {error}
               </div>
             )}
@@ -119,26 +114,28 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-[var(--border)]">
-            <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)] text-center mb-3">
-              Quick demo accounts
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {DEMO_ACCOUNTS.map((a) => (
-                <button
-                  type="button"
-                  key={a.email}
-                  onClick={() => useDemo(a)}
-                  className="group relative rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-xs hover:border-brand-500 hover:shadow-sm transition-all"
-                >
-                  <div className={`text-lg mb-1 bg-gradient-to-br ${a.color} bg-clip-text text-transparent font-bold`}>
-                    {a.emoji} {a.label}
-                  </div>
-                  <div className="text-[10px] text-[var(--muted-foreground)] truncate">{a.email}</div>
-                </button>
-              ))}
+          {import.meta.env.DEV && (
+            <div className="mt-8 pt-6 border-t border-[var(--border)]">
+              <p className="text-xs uppercase tracking-wider text-[var(--muted-foreground)] text-center mb-3">
+                Quick demo accounts
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {DEMO_ACCOUNTS.map((a) => (
+                  <button
+                    type="button"
+                    key={a.email}
+                    onClick={() => useDemo(a)}
+                    className="group relative rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-xs hover:border-brand-500 hover:shadow-sm transition-all"
+                  >
+                    <div className={`text-lg mb-1 bg-gradient-to-br ${a.color} bg-clip-text text-transparent font-bold`}>
+                      {a.emoji} {a.label}
+                    </div>
+                    <div className="text-[10px] text-[var(--muted-foreground)] truncate">{a.email}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

@@ -2,7 +2,8 @@ import { NavLink } from "react-router-dom";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import { useAuth } from "@/store/auth";
-import { cn } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
+import { Logo } from "@/components/common/Logo";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -12,7 +13,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
-  const role = useAuth((s) => s.user?.role || "student");
+  const user = useAuth((s) => s.user);
+  const role = user?.role || "student";
   const sections = NAV[role] || NAV.student;
 
   return (
@@ -33,15 +35,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
         )}
       >
         <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/30">
-              <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                <path d="M10 20 L20 10 L30 20 L20 30 Z" stroke="white" strokeWidth="2.5" fill="none" strokeLinejoin="round"/>
-                <circle cx="20" cy="20" r="3.5" fill="white"/>
-              </svg>
-            </div>
-            {!collapsed && <span className="font-bold tracking-tight whitespace-nowrap">SmartAttend</span>}
-          </div>
+          <Logo size="md" withWordmark={!collapsed} />
           <button
             onClick={onToggle}
             className="hidden lg:flex h-7 w-7 rounded-md items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors"
@@ -84,7 +78,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                         <item.icon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4")} />
                         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                         {!collapsed && item.badge != null && item.badge > 0 && (
-                          <span className="text-[10px] font-bold bg-red-500 text-white rounded-full px-1.5 min-w-[18px] text-center">
+                          <span className="text-[10px] font-bold bg-[var(--error)] text-[var(--error-fg)] rounded-full px-1.5 min-w-[18px] text-center">
                             {item.badge}
                           </span>
                         )}
@@ -100,11 +94,11 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
         <div className="p-3 border-t border-[var(--border)] shrink-0">
           <div className={cn("flex items-center gap-3", collapsed ? "justify-center" : "")}>
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-              {useAuth.getState().user?.full_name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() || "U"}
+              {initials(user?.full_name)}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">{useAuth.getState().user?.full_name || "—"}</div>
+                <div className="text-sm font-semibold truncate">{user?.full_name || "—"}</div>
                 <div className="text-xs text-[var(--muted-foreground)] capitalize">{role}</div>
               </div>
             )}

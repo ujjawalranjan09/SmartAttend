@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ── PostgreSQL ──────────────────────────────────────────────────────────
   db:
@@ -34,20 +32,18 @@ services:
       timeout: 3s
       retries: 3
 
-  # ── FastAPI Backend ──────────────────────────────────────────────────────
+  # ── FastAPI Backend ──────────────────────────────────────────────────
   api:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file: ../../.env
     environment:
-      APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://smartattend:smartattend_secret@db:5432/smartattend
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: ${SECRET_KEY:-change_me_in_production_32chars_min}
-      QR_TOKEN_TTL_SECONDS: 120
       ML_SERVICE_URL: http://ml:8001
     ports:
       - "8000:8000"
@@ -58,21 +54,22 @@ services:
         condition: service_healthy
     volumes:
       - ./apps/backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-  # ── Celery Worker ────────────────────────────────────────────────────────
+  # ── Celery Worker ───────────────────────────────────────────────────────
   worker:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file: ../../.env
     environment:
-      APP_ENV: development
       DATABASE_URL: postgresql+psycopg2://smartattend:smartattend_secret@db:5432/smartattend
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: ${SECRET_KEY:-change_me_in_production_32chars_min}
     depends_on:
       db:
         condition: service_healthy
@@ -80,33 +77,33 @@ services:
         condition: service_healthy
     volumes:
       - ./apps/backend:/app
-    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=4 -Q default,ml_scoring,reports,notifications
+    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=4 -Q default,ml,ml_scoring,reports,notifications
 
-  # ── Celery Beat (Scheduled Tasks) ────────────────────────────────────────
+  # ── Celery Beat (Scheduled Tasks) ───────────────────────────────────────
   beat:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file: ../../.env
     environment:
-      APP_ENV: development
       DATABASE_URL: postgresql+psycopg2://smartattend:smartattend_secret@db:5432/smartattend
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: ${SECRET_KEY:-change_me_in_production_32chars_min}
     depends_on:
       - redis
     volumes:
       - ./apps/backend:/app
     command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
 
-  # ── ML Service (Face, Anomaly, Forecast) ──────────────────────────────────
+  # ── ML Service (Face, Anomaly, Forecast) ──────────────────────────────
   ml:
     build:
       context: ./apps/ml-service
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file: ../../.env
     environment:
       APP_ENV: development
       MODEL_DIR: /app/models
@@ -116,7 +113,7 @@ services:
       - ml_models:/app/models
       - ./apps/ml-service:/app
 
-  # ── Flower (Celery Monitoring UI) ─────────────────────────────────────────
+  # ── Flower (Celery Monitoring UI) ──────────────────────────────────────
   flower:
     image: mher/flower:2.0
     restart: unless-stopped

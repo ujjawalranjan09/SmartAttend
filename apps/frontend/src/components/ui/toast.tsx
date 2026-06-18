@@ -1,9 +1,15 @@
 import { Toaster as SonnerToaster } from "sonner";
+import { useTheme } from "@/store/theme";
 
+/**
+ * Theme-aware Toaster. Reads the active theme from the theme store so
+ * toasts always match the app shell. Render at the app root.
+ */
 export function Toaster(props: React.ComponentProps<typeof SonnerToaster>) {
+  const theme = useTheme((s) => s.theme);
   return (
     <SonnerToaster
-      theme={props.theme}
+      theme={theme}
       position="bottom-right"
       richColors
       closeButton

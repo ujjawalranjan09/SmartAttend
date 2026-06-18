@@ -14,10 +14,10 @@ interface KpiCardProps {
 
 const variantStyles = {
   brand:   { iconBg: "bg-brand-500/15 text-brand-500",         bar: "from-brand-400 to-brand-600" },
-  success: { iconBg: "bg-emerald-500/15 text-emerald-500",     bar: "from-emerald-400 to-emerald-600" },
-  warning: { iconBg: "bg-amber-500/15 text-amber-500",         bar: "from-amber-400 to-amber-600" },
-  error:   { iconBg: "bg-red-500/15 text-red-500",             bar: "from-red-400 to-red-600" },
-  info:    { iconBg: "bg-blue-500/15 text-blue-500",           bar: "from-blue-400 to-blue-600" },
+  success: { iconBg: "bg-[var(--success)]/15 text-[var(--success)]",     bar: "from-[var(--success)]/60 to-[var(--success)]" },
+  warning: { iconBg: "bg-[var(--warning)]/15 text-[var(--warning)]",     bar: "from-[var(--warning)]/60 to-[var(--warning)]" },
+  error:   { iconBg: "bg-[var(--error)]/15 text-[var(--error)]",         bar: "from-[var(--error)]/60 to-[var(--error)]" },
+  info:    { iconBg: "bg-[var(--info)]/15 text-[var(--info)]",           bar: "from-[var(--info)]/60 to-[var(--info)]" },
   neutral: { iconBg: "bg-[var(--muted)] text-[var(--muted-foreground)]", bar: "from-neutral-400 to-neutral-600" },
 };
 
@@ -38,8 +38,8 @@ export function KpiCard({ label, value, icon: Icon, variant = "brand", delta, de
         {delta && (
           <div className={cn(
             "flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5",
-            delta.direction === "up" && "text-emerald-600 bg-emerald-500/10",
-            delta.direction === "down" && "text-red-600 bg-red-500/10",
+            delta.direction === "up" && "text-[var(--success)] bg-[var(--success)]/10",
+            delta.direction === "down" && "text-[var(--error)] bg-[var(--error)]/10",
             delta.direction === "flat" && "text-[var(--muted-foreground)] bg-[var(--muted)]"
           )}>
             {delta.direction === "up" && <TrendingUp className="h-3 w-3" />}

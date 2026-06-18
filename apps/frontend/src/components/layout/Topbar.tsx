@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Menu, Bell, Search, Command, LogOut, User as UserIcon, Settings as SettingsIcon, Sun, Moon, Laptop } from "lucide-react";
+import { Menu, Bell, Search, Command, LogOut, User as UserIcon, Settings as SettingsIcon, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV } from "@/lib/nav";
 import { useAuth } from "@/store/auth";
@@ -12,8 +12,6 @@ import { cn, initials } from "@/lib/utils";
 
 interface TopbarProps {
   onMobileMenu: () => void;
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
 }
 
 export function Topbar({ onMobileMenu }: TopbarProps) {
@@ -27,7 +25,6 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
   const userRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Build breadcrumb from current path
   const navItem = NAV[role]?.flatMap((s) => s.items || []).find((i) => i.id === location.pathname.slice(1));
 
   const { data: notifs } = useQuery({
@@ -48,8 +45,6 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-
-
   async function handleLogout() {
     try { await authApi.logout(); } catch {}
     setToken(null);
@@ -68,7 +63,7 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
         <h1 className="text-base font-semibold truncate">{navItem?.label || "Dashboard"}</h1>
       </div>
 
-      <div className="hidden md:flex items-center gap-1 px-3 h-9 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-[var(--muted-foreground)] min-w-[200px] cursor-text hover:border-[var(--muted-foreground)]/40 transition-colors">
+      <div className="hidden md:flex items-center gap-1 px-3 h-9 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-[var(--muted-foreground)] min-w-[200px] cursor-text hover:border-[var(--muted-foreground)]/40 transition-colors" role="search" aria-label="Search">
         <Search className="h-3.5 w-3.5" />
         <span className="text-xs flex-1">Search...</span>
         <kbd className="hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono bg-[var(--muted)] px-1.5 h-5 rounded">
@@ -84,11 +79,11 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
         <Button variant="ghost" size="icon" onClick={() => setOpenNotif((o) => !o)} aria-label="Notifications" className="relative">
           <Bell className="h-4 w-4" />
           {unread > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--background)] animate-pulse" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--error)] ring-2 ring-[var(--background)] animate-pulse" />
           )}
         </Button>
         {openNotif && (
-          <div className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)] z-50 overflow-hidden animate-[slideUp_0.2s_ease-out]">
+          <div className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)] z-50 overflow-hidden animate-[slideUp_0.2s_ease-out]" role="menu">
             <div className="px-4 py-3 flex items-center justify-between border-b border-[var(--border)]">
               <h3 className="font-semibold">Notifications</h3>
               {unread > 0 && <span className="text-xs text-brand-500">{unread} new</span>}
@@ -129,6 +124,8 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
         <button
           onClick={() => setOpenUser((o) => !o)}
           className="flex items-center gap-2 h-9 pl-1 pr-2 rounded-lg hover:bg-[var(--accent)] transition-colors"
+          aria-label="User menu"
+          aria-expanded={openUser}
         >
           <div className="h-7 w-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold">
             {initials(user?.full_name)}
@@ -136,7 +133,7 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
           <span className="hidden md:inline text-sm font-medium capitalize">{user?.full_name?.split(" ")[0] || role}</span>
         </button>
         {openUser && (
-          <div className="absolute right-0 top-12 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)] z-50 overflow-hidden animate-[slideUp_0.2s_ease-out]">
+          <div className="absolute right-0 top-12 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-elevated)] z-50 overflow-hidden animate-[slideUp_0.2s_ease-out]" role="menu">
             <div className="px-3 py-3 border-b border-[var(--border)]">
               <div className="text-sm font-semibold truncate">{user?.full_name || "—"}</div>
               <div className="text-xs text-[var(--muted-foreground)] truncate">{user?.email}</div>
@@ -145,14 +142,14 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
               </div>
             </div>
             <div className="py-1">
-              <button onClick={() => { navigate("/profile"); setOpenUser(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2">
+              <button onClick={() => { navigate("/profile"); setOpenUser(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2" role="menuitem">
                 <UserIcon className="h-4 w-4" /> Profile
               </button>
-              <button onClick={() => { navigate("/settings"); setOpenUser(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2">
+              <button onClick={() => { navigate("/settings"); setOpenUser(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2" role="menuitem">
                 <SettingsIcon className="h-4 w-4" /> Settings
               </button>
               <div className="my-1 border-t border-[var(--border)]" />
-              <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2 text-red-600">
+              <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--accent)] flex items-center gap-2 text-[var(--error)]" role="menuitem">
                 <LogOut className="h-4 w-4" /> Sign out
               </button>
             </div>
@@ -161,8 +158,4 @@ export function Topbar({ onMobileMenu }: TopbarProps) {
       </div>
     </header>
   );
-}
-
-async function authApiLogout() {
-  return authApi.logout();
 }

@@ -59,18 +59,18 @@ export function SessionsPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
               <Filter className="h-3 w-3" /> Filters
             </div>
-            <Input placeholder="Course" value={filter.course} onChange={(e) => setFilter((f) => ({ ...f, course: e.target.value }))} className="max-w-[180px] h-9" />
-            <select value={filter.status} onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))} className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm">
+            <Input placeholder="Course" value={filter.course} onChange={(e) => setFilter((f) => ({ ...f, course: e.target.value }))} className="max-w-[180px] h-9 w-full sm:w-auto" />
+            <select value={filter.status} onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))} className="h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm w-full sm:w-auto">
               <option value="">All status</option>
               <option value="active">Active</option>
               <option value="scheduled">Scheduled</option>
               <option value="ended">Ended</option>
             </select>
-            <Input type="date" value={filter.date} onChange={(e) => setFilter((f) => ({ ...f, date: e.target.value }))} className="max-w-[170px] h-9" />
+            <Input type="date" value={filter.date} onChange={(e) => setFilter((f) => ({ ...f, date: e.target.value }))} className="max-w-[170px] h-9 w-full sm:w-auto" />
             {(filter.course || filter.status || filter.date) && (
               <Button variant="ghost" size="sm" onClick={() => setFilter({ course: "", status: "", date: "" })}>Clear</Button>
             )}

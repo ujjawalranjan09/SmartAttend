@@ -197,7 +197,7 @@ function AddStudentDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
             <Label htmlFor="s-name">Full name *</Label>
             <Input id="s-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Priya Sharma" required />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="s-email">Email *</Label>
               <Input id="s-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="student@school.in" required />

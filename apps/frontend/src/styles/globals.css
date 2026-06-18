@@ -54,6 +54,12 @@
   --shadow-soft: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
   --shadow-elevated: 0 4px 12px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.06);
   --shadow-pop: 0 12px 40px rgba(0,0,0,0.12);
+  --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06);
+  --shadow-glow-brand: 0 0 0 1px color-mix(in oklch, var(--color-brand-500) 30%, transparent),
+    0 8px 32px color-mix(in oklch, var(--color-brand-500) 22%, transparent);
+
+  /* Layout rhythm */
+  --space-page: 1rem;
 
   /* Animations */
   --animate-fade-in: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -62,6 +68,8 @@
   --animate-scale-in: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-shimmer: shimmer 2s linear infinite;
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-pop-in: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-gradient-pan: gradientPan 18s ease infinite;
 }
 
 @keyframes fadeIn {
@@ -84,6 +92,14 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.9) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes gradientPan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 
 /* ─────────────  shadcn-style CSS variables for theme  ───────────── */
 :root,
@@ -99,14 +115,22 @@
   --secondary: #27272a;
   --secondary-foreground: #fafafa;
   --muted: #27272a;
-  --muted-foreground: #a1a1aa;
+  --muted-foreground: #b4b4ba;
   --accent: #27272a;
   --accent-foreground: #fafafa;
   --destructive: #ef4444;
   --destructive-foreground: #fafafa;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #14b8a6;
+  --success: #10b981;
+  --success-fg: #042f2e;
+  --warning: #f59e0b;
+  --warning-fg: #451a03;
+  --error: #ef4444;
+  --error-fg: #fafafa;
+  --info: #3b82f6;
+  --info-fg: #ffffff;
+  --border: #2a2a2e;
+  --input: #2a2a2e;
+  --ring: #2dd4bf;
 }
 
 .light {
@@ -121,11 +145,19 @@
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
   --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  --muted-foreground: #52525b;
   --accent: #f4f4f5;
   --accent-foreground: #18181b;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
+  --success: #10b981;
+  --success-fg: #ffffff;
+  --warning: #f59e0b;
+  --warning-fg: #451a03;
+  --error: #dc2626;
+  --error-fg: #ffffff;
+  --info: #3b82f6;
+  --info-fg: #ffffff;
   --border: #e4e4e7;
   --input: #e4e4e7;
   --ring: #0d9488;
@@ -152,9 +184,19 @@
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
+  /* Make sure icon-only buttons always show a focus ring even when borderless */
+  button:focus-visible:not(:focus-visible:has(svg:only-child)),
+  a:focus-visible {
+    outline-offset: 2px;
+  }
   ::selection {
     background: color-mix(in oklch, var(--primary) 30%, transparent);
   }
+  /* Respect notched/dynamic-edge phones */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+  .min-h-dvh { min-height: 100dvh; }
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -186,6 +228,50 @@
     radial-gradient(at 0% 80%, color-mix(in oklch, var(--color-brand-700) 18%, transparent) 0px, transparent 50%),
     radial-gradient(at 80% 100%, color-mix(in oklch, var(--color-brand-400) 15%, transparent) 0px, transparent 50%);
 }
+
+/* Animated mesh — slow drifting gradient for hero/auth backgrounds */
+.bg-mesh-animated {
+  background-size: 200% 200%;
+  animation: var(--animate-gradient-pan);
+}
+
+/* Glass surfaces — translucent + blur, adapts to theme via color-mix */
+.glass {
+  background: color-mix(in oklch, var(--card) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.glass-strong {
+  background: color-mix(in oklch, var(--card) 86%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+/* Gradient ring/border on hover (used by interactive cards) */
+.gradient-border-hover {
+  position: relative;
+}
+.gradient-border-hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--color-brand-400) 70%, transparent), transparent 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.gradient-border-hover:hover::before { opacity: 1; }
+
+/* No-scrollbar utility (mobile tab bar overflow, horizontal chips) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
