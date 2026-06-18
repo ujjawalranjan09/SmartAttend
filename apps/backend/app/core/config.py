@@ -24,10 +24,12 @@ def _load_env_file() -> None:
         # Docker container with volume mount or built image
         Path("/app/.env"),
         Path("/app/app/.env"),  # unlikely but harmless
-        # Relative to this file (apps/backend/app/core/config.py -> project root)
-        Path(__file__).resolve().parents[4] / ".env",
-        Path(__file__).resolve().parents[3] / ".env",
     ]
+
+    # Walk up from this file towards root, looking for .env at each level
+    _this = Path(__file__).resolve()
+    for i in range(len(_this.parents)):  # safe — won't IndexError
+        candidates.append(_this.parents[i] / ".env")
 
     for candidate in candidates:
         if candidate.is_file():
