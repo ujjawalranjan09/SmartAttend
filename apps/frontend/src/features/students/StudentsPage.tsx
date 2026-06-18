@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Download, UserPlus, Users, Mail, Hash, Loader2 } from "lucide-react";
+import { Search, Download, UserPlus, Users, Mail, Hash, Loader2, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { studentsApi, reportsApi } from "@/lib/api";
+import { studentsApi, reportsApi, batchesApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
 import { initials, attendanceClass, formatPercent, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -22,6 +22,7 @@ export function StudentsPage() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "at-risk" | "safe">("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const { data: studentList = [], isLoading, refetch } = useQuery({
     queryKey: ["students", "list"],
@@ -37,6 +38,18 @@ export function StudentsPage() {
     const matchesFilter = filter === "all" || (filter === "at-risk" ? pct < 75 : pct >= 75);
     return matchesQ && matchesFilter;
   });
+
+  async function remove(s: any) {
+    if (!confirm(`Remove ${s.full_name}? This will revoke their access immediately.`)) return;
+    try {
+      await studentsApi.remove(s.id);
+      toast.success(`${s.full_name} removed`);
+      qc.invalidateQueries({ queryKey: ["students"] });
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || "Failed to remove";
+      toast.error(typeof msg === "string" ? msg : "Failed");
+    }
+  }
 
   async function exportCsv() {
     if (!user?.institution_id) { toast.error("Missing institution ID — re-login"); return; }
@@ -108,77 +121,95 @@ export function StudentsPage() {
             </div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              {filtered.map((s: any) => <StudentRow key={s.id} student={s} />)}
+              {filtered.map((s: any) => (
+                <div key={s.id} className="flex items-center gap-4 py-3 px-1 hover:bg-[var(--accent)] rounded-md transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold shrink-0">
+                    {initials(s.full_name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{s.full_name}</div>
+                    <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-3 mt-0.5">
+                      {s.roll_number && <span className="flex items-center gap-1"><Hash className="h-3 w-3" /> {s.roll_number}</span>}
+                      {s.email && <span className="flex items-center gap-1 truncate"><Mail className="h-3 w-3" /> {s.email}</span>}
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setEditId(s.id)}><Edit className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => remove(s)}><Trash2 className="h-3 w-3 text-red-500" /></Button>
+                    </>
+                  )}
+                  {(() => { const pct = s.attendance_pct ?? null; return pct !== null && (
+                    <Badge variant={pct >= 75 ? "success" : pct >= 60 ? "warning" : "destructive"} className="shrink-0 hidden sm:inline-flex">
+                      {pct >= 75 ? "Safe" : "At risk"}
+                    </Badge>
+                  ); })()}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <AddStudentDialog open={addOpen} onOpenChange={setAddOpen} onSaved={() => { refetch(); qc.invalidateQueries({ queryKey: ["students"] }); }} />
+      <StudentDialog open={addOpen} onOpenChange={setAddOpen} onSaved={() => { refetch(); qc.invalidateQueries({ queryKey: ["students"] }); }} />
+      <StudentDialog open={editId !== null} editId={editId} onOpenChange={(v) => { if (!v) setEditId(null); }} onSaved={() => { refetch(); qc.invalidateQueries({ queryKey: ["students"] }); }} />
     </div>
   );
 }
 
-function StudentRow({ student: s }: { student: any }) {
-  const pct = s.attendance_pct ?? null;
-  return (
-    <div className="flex items-center gap-4 py-3 px-1 hover:bg-[var(--accent)] rounded-md transition-colors">
-      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold shrink-0">
-        {initials(s.full_name)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{s.full_name}</div>
-        <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-3 mt-0.5">
-          {s.roll_number && <span className="flex items-center gap-1"><Hash className="h-3 w-3" /> {s.roll_number}</span>}
-          {s.email && <span className="flex items-center gap-1 truncate"><Mail className="h-3 w-3" /> {s.email}</span>}
-        </div>
-      </div>
-      {pct !== null && (
-        <div className="w-32 hidden sm:block">
-          <Progress value={pct} className={attendanceClass(pct)} />
-          <div className="text-xs text-[var(--muted-foreground)] mt-1 text-right tabular-nums">{formatPercent(pct)}</div>
-        </div>
-      )}
-      {pct !== null && (
-        <Badge variant={pct >= 75 ? "success" : pct >= 60 ? "warning" : "destructive"} className="shrink-0">
-          {pct >= 75 ? "Safe" : "At risk"}
-        </Badge>
-      )}
-      {pct === null && <Badge variant="muted" className="shrink-0">No data</Badge>}
-    </div>
-  );
-}
-
-function AddStudentDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+function StudentDialog({ open, onOpenChange, editId, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; editId?: string | null; onSaved: () => void }) {
   const { user } = useAuth();
+  const isEdit = !!editId;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [rollNumber, setRollNumber] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [batchId, setBatchId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { data: batchList = [] } = useQuery({
+    queryKey: ["batches", "list"],
+    queryFn: () => batchesApi.list().then((r: any) => extractList(r)),
+    enabled: open,
+  });
+
+  if (isEdit && open && !loading && !fullName) {
+    setLoading(true);
+    studentsApi.get(editId!).then((s: any) => {
+      setFullName(s.full_name || ""); setEmail(s.email || ""); setRollNumber(s.roll_number || "");
+      setPhone(s.phone || ""); setBatchId(s.batch_id || "");
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }
+
+  function reset() {
+    setFullName(""); setEmail(""); setRollNumber(""); setPassword(""); setPhone(""); setBatchId(""); setLoading(false);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!fullName || !email || !password) { toast.error("Name, email and password are required"); return; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (!fullName || !email) { toast.error("Name and email are required"); return; }
+    if (!isEdit && password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     setSaving(true);
     try {
-      await studentsApi.create({
-        full_name: fullName,
-        email,
-        password,
-        phone: phone || undefined,
-        roll_number: rollNumber || undefined,
-        role: "student",
-        institution_id: user?.institution_id,
-      });
-      toast.success("Student added");
-      setFullName(""); setEmail(""); setRollNumber(""); setPassword(""); setPhone("");
-      onSaved();
-      onOpenChange(false);
+      const data: any = {
+        full_name: fullName, email,
+        phone: phone || undefined, roll_number: rollNumber || undefined,
+        batch_id: batchId || undefined,
+      };
+      if (!isEdit) { Object.assign(data, { password, role: "student", institution_id: user?.institution_id }); }
+      if (isEdit) {
+        await studentsApi.update(editId!, data);
+        toast.success("Student updated");
+      } else {
+        await studentsApi.create(data);
+        toast.success("Student added");
+      }
+      reset(); onSaved(); onOpenChange(false);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || "Failed to add student";
+      const msg = err?.response?.data?.detail || err?.message || "Failed";
       toast.error(typeof msg === "string" ? msg : "Failed");
     } finally {
       setSaving(false);
@@ -186,11 +217,11 @@ function AddStudentDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4" /> Add new student</DialogTitle>
-          <DialogDescription>The student will be created instantly. They can sign in with the email and password you set.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4" /> {isEdit ? "Edit student" : "Add new student"}</DialogTitle>
+          <DialogDescription>{isEdit ? "Update student details." : "The student will be created instantly. They can sign in with the email and password you set."}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
@@ -200,7 +231,8 @@ function AddStudentDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="s-email">Email *</Label>
-              <Input id="s-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="student@school.in" required />
+              <Input id="s-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="student@school.in" required disabled={isEdit} />
+              {isEdit && <div className="text-xs text-[var(--muted-foreground)]">Email cannot be changed</div>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="s-roll">Roll number</Label>
@@ -208,19 +240,28 @@ function AddStudentDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="s-batch">Batch</Label>
+            <select value={batchId} onChange={(e) => setBatchId(e.target.value)} className="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm">
+              <option value="">No batch</option>
+              {(batchList as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="s-phone">Phone</Label>
             <Input id="s-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 XXXXXXXXXX" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="s-pwd">Temporary password *</Label>
-            <Input id="s-pwd" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 characters" required minLength={8} />
-            <div className="text-xs text-[var(--muted-foreground)]">The student should change this after first login.</div>
-          </div>
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="s-pwd">Temporary password *</Label>
+              <Input id="s-pwd" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 characters" required minLength={8} />
+              <div className="text-xs text-[var(--muted-foreground)]">The student should change this after first login.</div>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" variant="gradient" disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-              Add student
+              {isEdit ? "Save changes" : "Add student"}
             </Button>
           </DialogFooter>
         </form>

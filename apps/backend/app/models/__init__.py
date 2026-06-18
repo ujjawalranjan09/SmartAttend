@@ -1,5 +1,7 @@
 from app.models.user import User, UserRole
 from app.models.institution import Institution, Department
+from app.models.subject import Subject
+from app.models.batch import Batch, BatchSchedule
 from app.models.course import Course, Enrollment
 from app.models.session import ClassSession, TimetableSlot
 from app.models.attendance import AttendanceRecord, AttendanceMethod
@@ -15,6 +17,8 @@ from app.models.student_goal import StudentGoal
 __all__ = [
     "User", "UserRole",
     "Institution", "Department",
+    "Subject",
+    "Batch", "BatchSchedule",
     "Course", "Enrollment",
     "ClassSession", "TimetableSlot",
     "AttendanceRecord", "AttendanceMethod",

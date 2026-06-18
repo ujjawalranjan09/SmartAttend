@@ -7,6 +7,7 @@ class CourseCreate(BaseModel):
     institution_id: UUID
     department_id: UUID
     faculty_id: UUID | None = None
+    subject_id: UUID | None = None
     name: str
     code: str
     semester: int | None = None
@@ -22,6 +23,7 @@ class CourseUpdate(BaseModel):
     min_attendance_pct: int | None = None
     faculty_id: UUID | None = None
     department_id: UUID | None = None
+    subject_id: UUID | None = None
 
 
 class CourseResponse(BaseModel):
@@ -29,6 +31,7 @@ class CourseResponse(BaseModel):
     institution_id: UUID
     department_id: UUID
     faculty_id: UUID
+    subject_id: UUID | None = None
     name: str
     code: str
     semester: int | None

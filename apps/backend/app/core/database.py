@@ -54,8 +54,8 @@ async def get_db() -> AsyncSession:
 _sync_url = _async_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
 sync_engine = create_engine(
     _sync_url,
-    pool_size=5,
-    max_overflow=0,
+    pool_size=2,
+    max_overflow=1,
     pool_pre_ping=True,
     pool_recycle=1800,
     echo=False,

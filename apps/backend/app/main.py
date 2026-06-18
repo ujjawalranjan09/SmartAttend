@@ -28,6 +28,8 @@ from app.api.v1 import (
     notifications,
     institutions,
     courses,
+    subjects,
+    batches,
     timetable,
     push,
     faces,
@@ -195,6 +197,8 @@ app.include_router(
     institutions.router, prefix="/api/v1/institutions", tags=["Institutions"]
 )
 app.include_router(courses.router, prefix="/api/v1/courses", tags=["Courses"])
+app.include_router(subjects.router, prefix="/api/v1/subjects", tags=["Subjects"])
+app.include_router(batches.router, prefix="/api/v1/batches", tags=["Batches"])
 app.include_router(
     departments.router, prefix="/api/v1/departments", tags=["Departments"]
 )
@@ -216,7 +220,7 @@ app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
 @app.get("/health", tags=["Health"])
 async def health_check():
     checks = {"status": "ok", "service": settings.app_name, "env": settings.app_env}
-    # DB check
+    # DB check — critical: only this determines overall status
     try:
         import sqlalchemy as sa
         from app.core.database import async_engine
@@ -227,7 +231,7 @@ async def health_check():
     except Exception:
         checks["database"] = "error"
         checks["status"] = "degraded"
-    # Redis check
+    # Redis check — non-critical on free tier, informational only
     try:
         from app.core.redis import get_redis
 
@@ -235,17 +239,18 @@ async def health_check():
         await r.ping()
         checks["redis"] = "ok"
     except Exception:
-        checks["redis"] = "error"
-        checks["status"] = "degraded"
-    # ML service check
+        checks["redis"] = "unavailable"
+    # ML service check — non-critical, informational only
     try:
         import httpx
-        async with httpx.AsyncClient(timeout=3) as client:
+        async with httpx.AsyncClient(timeout=2) as client:
             resp = await client.get(f"{settings.ml_service_url}/health")
-            checks["ml_service"] = "ok" if resp.status_code == 200 else "error"
+            checks["ml_service"] = "ok" if resp.status_code == 200 else "unavailable"
     except Exception:
         checks["ml_service"] = "unavailable"
-    status_code = 200 if checks["status"] == "ok" else 503
+    # Always return 200 so Render doesn't restart on non-critical degradation.
+    # Only return 503 if the database itself is unreachable.
     from fastapi.responses import JSONResponse
 
+    status_code = 200 if checks["database"] == "ok" else 503
     return JSONResponse(content=checks, status_code=status_code)

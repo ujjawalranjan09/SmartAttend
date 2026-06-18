@@ -81,6 +81,8 @@ class UserService:
             role=data.role,
             institution_id=data.institution_id,
             department_id=data.department_id,
+            default_subject_id=data.default_subject_id,
+            batch_id=data.batch_id,
             roll_number=data.roll_number,
             employee_id=data.employee_id,
         )

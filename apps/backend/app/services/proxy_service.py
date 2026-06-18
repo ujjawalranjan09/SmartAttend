@@ -1,7 +1,6 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-import numpy as np
 
 from app.models.attendance import AttendanceRecord, AttendanceStatus
 from app.models.session import ClassSession

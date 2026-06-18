@@ -67,8 +67,8 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://smartattend:smartattend_secret@localhost:5432/smartattend",
         description="SQLAlchemy database URL. MUST be overridden when using Docker Compose or in production.",
     )
-    database_pool_size: int = 20
-    database_max_overflow: int = 0
+    database_pool_size: int = 3
+    database_max_overflow: int = 2
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -120,15 +120,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_production_secrets(self):
+        import secrets as _secrets
+
         insecure_secret = "dev-insecure-secret-key-change-this-in-production-please"
         insecure_db = "postgresql+asyncpg://smartattend:smartattend_secret@localhost:5432/smartattend"
 
         if self.app_env == "production":
+            # Auto-generate SECRET_KEY if still the dev default (e.g. Render sync:false)
             if self.secret_key == insecure_secret:
-                raise ValueError(
-                    "In production you MUST set a strong SECRET_KEY (at least 32 chars). "
-                    "Do not use the development default."
+                generated = _secrets.token_urlsafe(32)
+                warnings.warn(
+                    "SECRET_KEY not set in production — generated a random one. "
+                    "Sessions will invalidate on restart. Set SECRET_KEY env var for persistence.",
+                    UserWarning,
+                    stacklevel=2,
                 )
+                self.secret_key = generated
+            # DATABASE_URL must be real in production (Render injects it from DB service)
             if self.database_url == insecure_db or "localhost" in self.database_url:
                 raise ValueError(
                     "In production you MUST set DATABASE_URL to your real database "

@@ -23,6 +23,9 @@ class Course(Base):
     faculty_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("subjects.id")
+    )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     semester: Mapped[int | None] = mapped_column(Integer)
@@ -33,6 +36,7 @@ class Course(Base):
     institution = relationship("Institution", back_populates="courses")
     department = relationship("Department", back_populates="courses")
     faculty = relationship("User", foreign_keys=[faculty_id])
+    subject = relationship("Subject", back_populates="courses")
     enrollments = relationship("Enrollment", back_populates="course")
     sessions = relationship("ClassSession", back_populates="course")
 

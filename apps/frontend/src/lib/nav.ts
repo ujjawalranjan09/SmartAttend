@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Users, Calendar, CheckSquare, FileText, Settings, UserCircle, CalendarClock, ScanLine, TrendingUp, GraduationCap, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users, Calendar, CheckSquare, FileText, Settings, UserCircle, CalendarClock, ScanLine, TrendingUp, GraduationCap, BookOpen, Layers, FolderOpen, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   id: string;
@@ -20,6 +20,9 @@ export const NAV: Record<string, NavSection[]> = {
     { section: "Management", items: [
       { id: "students", label: "Students", icon: Users },
       { id: "faculty", label: "Faculty", icon: GraduationCap },
+      { id: "subjects", label: "Subjects", icon: BookOpen },
+      { id: "batches", label: "Batches", icon: Layers },
+      { id: "courses", label: "Courses", icon: FolderOpen },
       { id: "sessions", label: "Sessions", icon: Calendar },
       { id: "attendance", label: "Attendance", icon: CheckSquare },
     ]},

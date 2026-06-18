@@ -2,12 +2,17 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-import numpy as np
 
 from app.models.face import FaceEmbedding
 from app.core.config import settings
 from app.services.ml_client import get_face_embedding, compare_embeddings
 from app.services.encryption_service import encrypt_embedding, decrypt_embedding
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
 
 
 class FaceService:
@@ -44,6 +49,8 @@ class FaceService:
             return similarity
 
         # Fallback: local cosine similarity
+        if not HAS_NUMPY:
+            return 0.0  # numpy not available, cannot compute locally
         vec_a = np.array(embedding)
         vec_b = np.array(stored_emb)
         norm_b = np.linalg.norm(vec_b)

@@ -24,6 +24,8 @@ class Institution(Base):
 
     users = relationship("User", back_populates="institution")
     departments = relationship("Department", back_populates="institution")
+    subjects = relationship("Subject", back_populates="institution")
+    batches = relationship("Batch", back_populates="institution")
     courses = relationship("Course", back_populates="institution")
 
 
@@ -42,4 +44,6 @@ class Department(Base):
 
     institution = relationship("Institution", back_populates="departments")
     users = relationship("User", back_populates="department")
+    subjects = relationship("Subject", back_populates="department")
+    batches = relationship("Batch", back_populates="department")
     courses = relationship("Course", back_populates="department")

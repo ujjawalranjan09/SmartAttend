@@ -205,5 +205,44 @@ export const facultyApi = {
 
 /* ─── Courses (needed for session start dialog) ─── */
 export const coursesApi = {
-  list: () => api<any>("/courses/"),
+  list: (q?: Record<string, unknown>) => api<any>("/courses/", { query: q }),
+  get: (id: string) => api<any>(`/courses/${id}`),
+  create: (data: any) => api<any>("/courses/", { method: "POST", body: data }),
+  update: (id: string, data: any) => api<any>(`/courses/${id}`, { method: "PUT", body: data }),
+  remove: (id: string) => api<any>(`/courses/${id}`, { method: "DELETE" }),
+};
+
+/* ─── Subjects ─── */
+export const subjectsApi = {
+  list: (q?: Record<string, unknown>) => api<any>("/subjects/", { query: q }),
+  get: (id: string) => api<any>(`/subjects/${id}`),
+  create: (data: any) => api<any>("/subjects/", { method: "POST", body: data }),
+  update: (id: string, data: any) => api<any>(`/subjects/${id}`, { method: "PUT", body: data }),
+  remove: (id: string) => api<any>(`/subjects/${id}`, { method: "DELETE" }),
+};
+
+/* ─── Batches (+ weekly schedule + members) ─── */
+export const batchesApi = {
+  list: (q?: Record<string, unknown>) => api<any>("/batches/", { query: q }),
+  get: (id: string) => api<any>(`/batches/${id}`),
+  create: (data: any) => api<any>("/batches/", { method: "POST", body: data }),
+  update: (id: string, data: any) => api<any>(`/batches/${id}`, { method: "PUT", body: data }),
+  remove: (id: string) => api<any>(`/batches/${id}`, { method: "DELETE" }),
+  // weekly recurring schedule
+  listSchedule: (batchId: string) => api<any>(`/batches/${batchId}/schedule`),
+  createSchedule: (batchId: string, data: any) =>
+    api<any>(`/batches/${batchId}/schedule`, { method: "POST", body: data }),
+  updateSchedule: (batchId: string, slotId: string, data: any) =>
+    api<any>(`/batches/${batchId}/schedule/${slotId}`, { method: "PUT", body: data }),
+  removeSchedule: (batchId: string, slotId: string) =>
+    api<any>(`/batches/${batchId}/schedule/${slotId}`, { method: "DELETE" }),
+  // members (students)
+  listMembers: (batchId: string) => api<any>(`/batches/${batchId}/members`),
+  setMembers: (batchId: string, user_ids: string[]) =>
+    api<any>(`/batches/${batchId}/members`, { method: "POST", body: { user_ids } }),
+};
+
+/* ─── Departments (needed for course/batch/subject forms) ─── */
+export const departmentsApi = {
+  list: (q?: Record<string, unknown>) => api<any>("/departments/", { query: q }),
 };

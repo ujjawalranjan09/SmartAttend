@@ -16,6 +16,9 @@ import { ProfilePage } from "@/features/profile/ProfilePage";
 import { DailyPlanPage } from "@/features/daily-plan/DailyPlanPage";
 import { QrScannerPage } from "@/features/qr-scanner/QrScannerPage";
 import { FacultyPage } from "@/features/faculty/FacultyPage";
+import { SubjectsPage } from "@/features/subjects/SubjectsPage";
+import { BatchesPage } from "@/features/batches/BatchesPage";
+import { CoursesPage } from "@/features/courses/CoursesPage";
 import { PlaceholderPage } from "@/features/dashboard/PlaceholderPage";
 import { useAuth } from "@/store/auth";
 
@@ -58,6 +61,9 @@ export const router = createBrowserRouter([
           { path: "/daily-plan", element: <DailyPlanPage /> },
           { path: "/qr-scanner", element: <QrScannerPage /> },
           { path: "/faculty", element: <FacultyPage /> },
+          { path: "/subjects", element: <SubjectsPage /> },
+          { path: "/batches", element: <BatchesPage /> },
+          { path: "/courses", element: <CoursesPage /> },
           { path: "/live-session/:id", element: <PlaceholderPage title="Live Session" emoji="🎥" /> },
         ],
       },

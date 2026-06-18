@@ -114,7 +114,7 @@ services:
       - key: APP_ENV
         value: production
       - key: SECRET_KEY
-        value: dev-secret-change-me
+        sync: false
       - key: PYTHONPATH
         value: .
       - key: DATABASE_URL

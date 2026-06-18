@@ -36,6 +36,12 @@ class User(Base):
     department_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("departments.id")
     )
+    default_subject_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("subjects.id")  # faculty default subject
+    )
+    batch_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("batches.id")  # student's batch
+    )
     roll_number: Mapped[str | None] = mapped_column(String(50))  # students only
     employee_id: Mapped[str | None] = mapped_column(String(50))  # faculty/staff
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -52,6 +58,8 @@ class User(Base):
     # Relationships
     institution = relationship("Institution", back_populates="users")
     department = relationship("Department", back_populates="users")
+    default_subject = relationship("Subject", foreign_keys=[default_subject_id])
+    batch = relationship("Batch", back_populates="members", foreign_keys=[batch_id])
     face_embedding = relationship("FaceEmbedding", back_populates="user", uselist=False)
     attendance_records = relationship("AttendanceRecord", back_populates="student")
     enrollments = relationship("Enrollment", back_populates="student")

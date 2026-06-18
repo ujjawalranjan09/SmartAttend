@@ -26,6 +26,8 @@ class UserCreate(BaseModel):
     role: UserRole
     institution_id: Optional[UUID] = None
     department_id: Optional[UUID] = None
+    default_subject_id: Optional[UUID] = None  # faculty default subject
+    batch_id: Optional[UUID] = None  # student's batch
     roll_number: Optional[str] = None
     employee_id: Optional[str] = None
 
@@ -35,6 +37,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     is_active: Optional[bool] = None
     department_id: Optional[UUID] = None
+    default_subject_id: Optional[UUID] = None
+    batch_id: Optional[UUID] = None
     roll_number: Optional[str] = None
     employee_id: Optional[str] = None
 
@@ -47,6 +51,8 @@ class UserResponse(BaseModel):
     role: UserRole
     institution_id: Optional[UUID]
     department_id: Optional[UUID]
+    default_subject_id: Optional[UUID]
+    batch_id: Optional[UUID]
     roll_number: Optional[str]
     employee_id: Optional[str]
     is_active: bool

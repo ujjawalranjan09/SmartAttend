@@ -14,6 +14,7 @@ from app.core.deps import (
 )
 from app.models.user import User, UserRole
 from app.models.course import Course, Enrollment
+from app.models.session import ClassSession
 from app.schemas.course import (
     CourseCreate,
     CourseUpdate,
@@ -44,6 +45,7 @@ async def create_course(
         institution_id=body.institution_id,
         department_id=body.department_id,
         faculty_id=faculty_id,
+        subject_id=body.subject_id,
         name=body.name,
         code=body.code,
         semester=body.semester,
@@ -257,3 +259,41 @@ async def unenroll_student(
     await db.delete(enrollment)
     await db.commit()
     return {"removed": True}
+
+
+@router.delete("/{course_id}", status_code=204)
+async def delete_course(
+    course_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(require_admin),
+):
+    """Delete a course. Blocked if any sessions/attendance history exists.
+
+    Enrollments are cascaded since they have no downstream history.
+    """
+    result = await db.execute(select(Course).where(Course.id == course_id))
+    course = result.scalar_one_or_none()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    session_count = (
+        await db.execute(
+            select(func.count()).select_from(ClassSession).where(
+                ClassSession.course_id == course_id
+            )
+        )
+    ).scalar() or 0
+    if session_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete course with class sessions/attendance history",
+        )
+
+    enrl_result = await db.execute(
+        select(Enrollment).where(Enrollment.course_id == course_id)
+    )
+    for enrl in enrl_result.scalars().all():
+        await db.delete(enrl)
+
+    await db.delete(course)
+    await db.commit()

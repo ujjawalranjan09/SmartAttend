@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, UserPlus, Mail, Hash, Trash2, Loader2, GraduationCap, Edit } from "lucide-react";
 import { toast } from "sonner";
-import { facultyApi } from "@/lib/api";
+import { facultyApi, subjectsApi } from "@/lib/api";
 import { useAuth } from "@/store/auth";
 import { initials, extractList } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -119,8 +119,15 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
   const [employeeId, setEmployeeId] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [defaultSubjectId, setDefaultSubjectId] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const { data: subjectList = [] } = useQuery({
+    queryKey: ["subjects", "list"],
+    queryFn: () => subjectsApi.list().then((r: any) => extractList(r)),
+    enabled: open,
+  });
 
   // Load faculty on edit open
   if (isEdit && open && !loading && !fullName) {
@@ -133,13 +140,15 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
         setEmail(f.email || "");
         setEmployeeId(f.employee_id || "");
         setPhone(f.phone || "");
+        setDefaultSubjectId(f.default_subject_id || "");
       }
       setLoading(false);
     }).catch(() => setLoading(false));
   }
 
   function reset() {
-    setFullName(""); setEmail(""); setEmployeeId(""); setPhone(""); setPassword(""); setLoading(false);
+    setFullName(""); setEmail(""); setEmployeeId(""); setPhone(""); setPassword("");
+    setDefaultSubjectId(""); setLoading(false);
   }
 
   async function submit(e: React.FormEvent) {
@@ -154,6 +163,7 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
           email,
           phone: phone || undefined,
           employee_id: employeeId || undefined,
+          default_subject_id: defaultSubjectId || undefined,
         });
         toast.success("Faculty updated");
       } else {
@@ -163,6 +173,7 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
           password,
           phone: phone || undefined,
           employee_id: employeeId || undefined,
+          default_subject_id: defaultSubjectId || undefined,
           role: "faculty",
           institution_id: user?.institution_id,
         });
@@ -205,6 +216,14 @@ function FacultyDialog({ open, onOpenChange, editId, onSaved }: { open: boolean;
           <div className="space-y-2">
             <Label htmlFor="f-phone">Phone</Label>
             <Input id="f-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 XXXXXXXXXX" disabled={loading} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="f-subject">Default subject</Label>
+            <select value={defaultSubjectId} onChange={(e) => setDefaultSubjectId(e.target.value)} className="h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm" disabled={loading}>
+              <option value="">None</option>
+              {(subjectList as any[]).map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+            </select>
+            <div className="text-xs text-[var(--muted-foreground)]">The primary subject this faculty member teaches.</div>
           </div>
           {!isEdit && (
             <div className="space-y-2">

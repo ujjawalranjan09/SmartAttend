@@ -1,12 +1,10 @@
 # SmartAttend — Celery worker Dockerfile.
-# Builds from the repo root (same context as the root Dockerfile) so Render
-# Background Workers can build without pointing at apps/backend/Dockerfile.
 FROM python:3.11-slim
 
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 gcc \
+    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY apps/backend/requirements.txt ./requirements.txt
