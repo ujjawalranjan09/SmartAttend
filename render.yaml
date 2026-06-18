@@ -12,7 +12,8 @@ services:
   - type: pserv
     name: smartattend-db
     env: docker
-    image: postgres:16-alpine
+    image:
+      url: postgres:16-alpine
     region: ohio  # change to your nearest region
     plan: free
     ipAllowList: []  # allow all (tighten for production)
