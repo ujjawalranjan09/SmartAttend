@@ -28,6 +28,16 @@ def _column_exists(table: str, column: str) -> bool:
     return result.fetchone() is not None
 
 
+def _table_exists(table: str) -> bool:
+    """Check if a table exists (PostgreSQL)."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
+        {"t": table},
+    )
+    return result.fetchone() is not None
+
+
 def upgrade() -> None:
     # ── push_subscriptions ────────────────────────────────────────────
     op.create_table(
@@ -78,17 +88,18 @@ def upgrade() -> None:
         "enrollments",
         ["student_id", "course_id"],
     )
-    op.create_index(
-        "idx_timetable_course_day",
-        "timetable_slots",
-        ["course_id", "day_of_week"],
-    )
+    if _table_exists("timetable_slots"):
+        op.create_index(
+            "idx_timetable_course_day",
+            "timetable_slots",
+            ["course_id", "day_of_week"],
+        )
 
 
 def downgrade() -> None:
-    op.drop_index("idx_timetable_course_day", table_name="timetable_slots")
-    op.drop_index("idx_enrollments_student_course", table_name="enrollments")
+    op.drop_index("idx_timetable_course_day", table_name="timetable_slots") if _table_exists("timetable_slots") else None
+    op.drop_index("idx_enrollments_student_course", table_name="enrollments") if _table_exists("enrollments") else None
     op.execute("DROP INDEX IF EXISTS idx_alerts_institution_unresolved")
-    op.drop_index("idx_sessions_course_date", table_name="class_sessions")
-    op.drop_index("idx_attendance_session_student", table_name="attendance_records")
+    op.drop_index("idx_sessions_course_date", table_name="class_sessions") if _table_exists("class_sessions") else None
+    op.drop_index("idx_attendance_session_student", table_name="attendance_records") if _table_exists("attendance_records") else None
     op.drop_table("push_subscriptions")
