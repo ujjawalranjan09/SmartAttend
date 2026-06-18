@@ -55,8 +55,8 @@ def upgrade() -> None:
     )
     op.execute(
         "CREATE INDEX idx_alerts_institution_unresolved "
-        "ON alerts (institution_id, is_resolved) "
-        "WHERE is_resolved = FALSE"
+        "ON alerts (institution_id, resolved) "
+        "WHERE resolved = FALSE"
     )
     op.create_index(
         "idx_enrollments_student_course",

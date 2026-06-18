@@ -47,7 +47,7 @@ class Alert(Base):
     )
     message: Mapped[str] = mapped_column(Text, nullable=False)
     anomaly_score: Mapped[float | None]
-    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_resolved: Mapped[bool] = mapped_column("resolved", Boolean, default=False)
     resolved_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id")
     )
