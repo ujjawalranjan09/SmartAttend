@@ -21,6 +21,7 @@ COPY apps/backend/ .
 EXPOSE 8000
 
 # Run migrations, seed demo data (idempotent — safe on every boot), then start
-# the API. Render overrides PORT automatically. The seeder is guarded so a
-# failure (e.g. transient DB hiccup) won't crash startup — the app still boots.
-CMD ["sh", "-c", "alembic upgrade head && (python scripts/seed_demo.py || echo 'SEED_SKIPPED') && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# the API. Render overrides PORT automatically. PYTHONPATH=/app ensures the
+# seeder (run from /app/scripts) can import the `app` package. Seeding is
+# best-effort so a failure won't crash startup — the app still boots.
+CMD ["sh", "-c", "alembic upgrade head && (PYTHONPATH=/app python scripts/seed_demo.py || echo 'SEED_SKIPPED') && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
