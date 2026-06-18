@@ -15,6 +15,19 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(table: str, column: str) -> bool:
+    """Check if a column exists in a table (PostgreSQL)."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = :t AND column_name = :c"
+        ),
+        {"t": table, "c": column},
+    )
+    return result.fetchone() is not None
+
+
 def upgrade() -> None:
     # ── push_subscriptions ────────────────────────────────────────────
     op.create_table(
@@ -53,11 +66,13 @@ def upgrade() -> None:
         "class_sessions",
         ["course_id", "scheduled_at"],
     )
-    op.execute(
-        "CREATE INDEX idx_alerts_institution_unresolved "
-        "ON alerts (institution_id, resolved) "
-        "WHERE resolved = FALSE"
-    )
+    # Only create if the column actually exists
+    if _column_exists("alerts", "institution_id"):
+        op.execute(
+            "CREATE INDEX idx_alerts_institution_unresolved "
+            "ON alerts (institution_id, resolved) "
+            "WHERE resolved = FALSE"
+        )
     op.create_index(
         "idx_enrollments_student_course",
         "enrollments",
